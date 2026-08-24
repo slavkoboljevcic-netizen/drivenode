@@ -1,4 +1,4 @@
-import { desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { reservations } from "../../../db/schema";
 
@@ -36,5 +36,21 @@ export async function POST(request: Request) {
     return Response.json({ reservation }, { status: 201 });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Rezervacija nije sačuvana." }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json() as Record<string, unknown>;
+    const code = clean(body.code);
+    const status = clean(body.status);
+    const allowed = ["Na čekanju", "Potvrđena", "Aktivna", "Povrat danas", "Završena", "Otkazana"];
+    if (!code || !allowed.includes(status)) {
+      return Response.json({ error: "Izaberite ispravan status rezervacije." }, { status: 400 });
+    }
+    const [reservation] = await getDb().update(reservations).set({ status }).where(eq(reservations.code, code)).returning();
+    return Response.json({ reservation: reservation || { code, status }, demo: !reservation });
+  } catch (error) {
+    return Response.json({ error: error instanceof Error ? error.message : "Status nije sačuvan." }, { status: 500 });
   }
 }
