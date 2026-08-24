@@ -8,6 +8,13 @@
       "when": 1787606485593,
       "tag": "0000_tan_abomination",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787607310286,
+      "tag": "0001_bright_groot",
+      "breakpoints": true
     }
   ]
 }
