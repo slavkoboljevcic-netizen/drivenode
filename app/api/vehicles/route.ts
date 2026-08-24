@@ -37,3 +37,31 @@ export async function POST(request: Request) {
     return Response.json({ error: message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json() as Record<string, unknown>;
+    const originalPlate = clean(body.originalPlate).toUpperCase();
+    const name = clean(body.name);
+    const plate = clean(body.plate).toUpperCase();
+    const location = clean(body.location);
+    const status = clean(body.status);
+    const service = clean(body.service) || "Nije zakazano";
+    const year = Number(body.year);
+    const km = Number(body.km);
+    if (!originalPlate || !name || !plate || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+      return Response.json({ error: "Popunite sva polja ispravnim podacima." }, { status: 400 });
+    }
+    const db = getDb();
+    const existing = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.plate, originalPlate)).limit(1);
+    const values = { name, plate, year, km: Math.round(km), location, status, service };
+    const [vehicle] = existing.length
+      ? await db.update(vehicles).set(values).where(eq(vehicles.plate, originalPlate)).returning()
+      : await db.insert(vehicles).values(values).returning();
+    return Response.json({ vehicle });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Vozilo nije izmenjeno.";
+    if (message.includes("UNIQUE")) return Response.json({ error: "Vozilo sa ovim tablicama već postoji." }, { status: 409 });
+    return Response.json({ error: message }, { status: 500 });
+  }
+}
