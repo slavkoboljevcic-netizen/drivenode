@@ -3,6 +3,15 @@ import { getDb } from "../../../db";
 import { clients } from "../../../db/schema";
 
 const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const phonePattern = /^\+?[0-9][0-9\s()/-]{6,19}$/;
+const validate = (values: { name: string; email: string; city: string; phone: string }) => {
+  if (values.name.length < 3 || !values.name.includes(" ")) return "Unesite ime i prezime klijenta.";
+  if (!emailPattern.test(values.email)) return "Unesite ispravnu email adresu.";
+  if (!phonePattern.test(values.phone)) return "Unesite ispravan broj telefona.";
+  if (values.city.length < 2) return "Izaberite grad klijenta.";
+  return "";
+};
 
 export async function GET() {
   try {
@@ -16,7 +25,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const values = { name: clean(body.name), email: clean(body.email).toLowerCase(), city: clean(body.city), phone: clean(body.phone), status: clean(body.status) || "Aktivan", notes: clean(body.notes), reservations: Number(body.reservations) || 0, value: Number(body.value) || 0 };
-    if (!values.name || !values.email.includes("@") || !values.city || !values.phone) return Response.json({ error: "Popunite sva obavezna polja." }, { status: 400 });
+    const validationError = validate(values);
+    if (validationError) return Response.json({ error: validationError }, { status: 400 });
     const duplicate = await getDb().select({ id: clients.id }).from(clients).where(eq(clients.email, values.email)).limit(1);
     if (duplicate.length) return Response.json({ error: "Klijent sa ovom email adresom već postoji." }, { status: 409 });
     const [client] = await getDb().insert(clients).values(values).returning();
@@ -32,7 +42,8 @@ export async function PATCH(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const originalEmail = clean(body.originalEmail).toLowerCase();
     const values = { name: clean(body.name), email: clean(body.email).toLowerCase(), city: clean(body.city), phone: clean(body.phone), status: clean(body.status), notes: clean(body.notes), reservations: Number(body.reservations) || 0, value: Number(body.value) || 0 };
-    if (!originalEmail || !values.name || !values.email.includes("@") || !values.city || !values.phone || !values.status) return Response.json({ error: "Popunite sva obavezna polja." }, { status: 400 });
+    const validationError = validate(values);
+    if (!originalEmail || validationError || !values.status) return Response.json({ error: validationError || "Popunite sva obavezna polja." }, { status: 400 });
     const db = getDb();
     const existing = await db.select({ id: clients.id }).from(clients).where(eq(clients.email, originalEmail)).limit(1);
     const [client] = existing.length ? await db.update(clients).set(values).where(eq(clients.email, originalEmail)).returning() : await db.insert(clients).values(values).returning();
