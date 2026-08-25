@@ -40,3 +40,18 @@ export const clients = sqliteTable("clients", {
   value: integer("value").notNull().default(0),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_clients_email").on(table.email)]);
+
+export const serviceRecords = sqliteTable("service_records", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull(),
+  vehicle: text("vehicle").notNull(),
+  plate: text("plate").notNull(),
+  type: text("type").notNull(),
+  dueDate: text("due_date").notNull(),
+  mileage: integer("mileage").notNull().default(0),
+  cost: integer("cost").notNull().default(0),
+  workshop: text("workshop").notNull().default(""),
+  status: text("status").notNull().default("Planirano"),
+  notes: text("notes").notNull().default(""),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_service_records_code").on(table.code)]);
