@@ -4,11 +4,11 @@ import { clients } from "../../../db/schema";
 
 const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const phonePattern = /^\+?[0-9][0-9\s()/-]{6,19}$/;
 const validate = (values: { name: string; email: string; city: string; phone: string }) => {
   if (values.name.length < 3 || !values.name.includes(" ")) return "Unesite ime i prezime klijenta.";
   if (!emailPattern.test(values.email)) return "Unesite ispravnu email adresu.";
-  if (!phonePattern.test(values.phone)) return "Unesite ispravan broj telefona.";
+  const phoneDigits = values.phone.replace(/\D/g, "");
+  if (phoneDigits.length < 8 || phoneDigits.length > 15) return "Broj telefona mora imati između 8 i 15 cifara.";
   if (values.city.length < 2) return "Izaberite grad klijenta.";
   return "";
 };
