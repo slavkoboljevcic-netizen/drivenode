@@ -78,3 +78,8 @@ export const teamUsers = sqliteTable("team_users", {
   permissions: text("permissions").notNull().default("[]"), lastActive: text("last_active").notNull().default("Još nije aktivan"),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_team_users_email").on(table.email)]);
+
+export const deletedRecords = sqliteTable("deleted_records", {
+  id: integer("id").primaryKey({ autoIncrement: true }), entity: text("entity").notNull(), recordKey: text("record_key").notNull(),
+  deletedAt: text("deleted_at").notNull().default(sql`CURRENT_TIMESTAMP`), deletedBy: text("deleted_by").notNull().default("Marko Nikolić"),
+}, (table) => [uniqueIndex("idx_deleted_records_entity_key").on(table.entity, table.recordKey)]);
