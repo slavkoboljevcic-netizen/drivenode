@@ -43,6 +43,13 @@
       "when": 1787653858869,
       "tag": "0005_tough_thor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1787655141704,
+      "tag": "0006_nosy_captain_midlands",
+      "breakpoints": true
     }
   ]
 }

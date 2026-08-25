@@ -71,3 +71,10 @@ export const documents = sqliteTable("documents", {
   mimeType: text("mime_type").notNull(), size: integer("size").notNull(), storageKey: text("storage_key").notNull(),
   expiresAt: text("expires_at"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_documents_storage_key").on(table.storageKey)]);
+
+export const teamUsers = sqliteTable("team_users", {
+  id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), email: text("email").notNull(),
+  role: text("role").notNull(), branch: text("branch").notNull(), status: text("status").notNull().default("Pozvan"),
+  permissions: text("permissions").notNull().default("[]"), lastActive: text("last_active").notNull().default("Još nije aktivan"),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_team_users_email").on(table.email)]);
