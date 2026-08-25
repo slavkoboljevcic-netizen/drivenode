@@ -27,3 +27,16 @@ export const reservations = sqliteTable("reservations", {
 }, (table) => [
   uniqueIndex("idx_reservations_code").on(table.code),
 ]);
+
+export const clients = sqliteTable("clients", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  city: text("city").notNull(),
+  phone: text("phone").notNull(),
+  status: text("status").notNull().default("Aktivan"),
+  notes: text("notes").notNull().default(""),
+  reservations: integer("reservations").notNull().default(0),
+  value: integer("value").notNull().default(0),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_clients_email").on(table.email)]);
