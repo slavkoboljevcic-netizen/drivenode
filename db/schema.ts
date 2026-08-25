@@ -86,3 +86,11 @@ export const deletedRecords = sqliteTable("deleted_records", {
   id: integer("id").primaryKey({ autoIncrement: true }), entity: text("entity").notNull(), recordKey: text("record_key").notNull(),
   deletedAt: text("deleted_at").notNull().default(sql`CURRENT_TIMESTAMP`), deletedBy: text("deleted_by").notNull().default("Marko Nikolić"),
 }, (table) => [uniqueIndex("idx_deleted_records_entity_key").on(table.entity, table.recordKey)]);
+
+export const vehicleDamages = sqliteTable("vehicle_damages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  code: text("code").notNull(), vehicle: text("vehicle").notNull(), plate: text("plate").notNull(),
+  description: text("description").notNull(), date: text("date").notNull(), cost: integer("cost").notNull().default(0),
+  status: text("status").notNull().default("Prijavljena"), notes: text("notes").notNull().default(""),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_vehicle_damages_code").on(table.code)]);
