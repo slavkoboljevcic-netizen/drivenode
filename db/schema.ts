@@ -64,3 +64,10 @@ export const transactions = sqliteTable("transactions", {
   paymentMethod: text("payment_method").notNull().default("Kartica"), notes: text("notes").notNull().default(""),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_transactions_reference").on(table.reference)]);
+
+export const documents = sqliteTable("documents", {
+  id: integer("id").primaryKey({ autoIncrement: true }), name: text("name").notNull(), folder: text("folder").notNull(),
+  linkedTo: text("linked_to").notNull().default(""), uploadedBy: text("uploaded_by").notNull().default("Marko Nikolić"),
+  mimeType: text("mime_type").notNull(), size: integer("size").notNull(), storageKey: text("storage_key").notNull(),
+  expiresAt: text("expires_at"), createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_documents_storage_key").on(table.storageKey)]);

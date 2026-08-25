@@ -36,6 +36,13 @@
       "when": 1787652953633,
       "tag": "0004_happy_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787653858869,
+      "tag": "0005_tough_thor",
+      "breakpoints": true
     }
   ]
 }
