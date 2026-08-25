@@ -64,6 +64,13 @@
       "when": 1787668000000,
       "tag": "0008_clean_company_install",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787668200000,
+      "tag": "0009_vehicle_details",
+      "breakpoints": true
     }
   ]
 }

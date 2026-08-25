@@ -10,6 +10,9 @@ export const vehicles = sqliteTable("vehicles", {
   location: text("location").notNull(),
   status: text("status").notNull().default("Dostupno"),
   service: text("service").notNull().default("Nije zakazano"),
+  vin: text("vin").notNull().default(""),
+  fuel: text("fuel").notNull().default(""),
+  transmission: text("transmission").notNull().default(""),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_vehicles_plate").on(table.plate)]);
 
