@@ -55,3 +55,12 @@ export const serviceRecords = sqliteTable("service_records", {
   notes: text("notes").notNull().default(""),
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 }, (table) => [uniqueIndex("idx_service_records_code").on(table.code)]);
+
+export const transactions = sqliteTable("transactions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  reference: text("reference").notNull(), description: text("description").notNull(),
+  category: text("category").notNull(), kind: text("kind").notNull(), amount: integer("amount").notNull(),
+  date: text("date").notNull(), location: text("location").notNull(), status: text("status").notNull().default("Plaćeno"),
+  paymentMethod: text("payment_method").notNull().default("Kartica"), notes: text("notes").notNull().default(""),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+}, (table) => [uniqueIndex("idx_transactions_reference").on(table.reference)]);
