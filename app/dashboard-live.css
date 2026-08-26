@@ -1,0 +1,17 @@
+.dashboard-revenue-bars {
+  align-items: flex-end;
+  border-bottom: 1px solid #e8edf4;
+  display: flex;
+  gap: 4px;
+  height: 145px;
+  padding-top: 12px;
+}
+
+.dashboard-revenue-bars i {
+  background: linear-gradient(180deg, #3b82f6, #93c5fd);
+  border-radius: 5px 5px 1px 1px;
+  display: block;
+  flex: 1;
+  min-width: 3px;
+  transition: height 0.25s ease;
+}
