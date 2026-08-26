@@ -71,3 +71,13 @@ export async function PATCH(request: Request) {
     return Response.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const plate = clean(new URL(request.url).searchParams.get("plate")).toUpperCase();
+    if (!plate) return Response.json({ error: "Nedostaje vozilo." }, { status: 400 });
+    const deleted = await getDb().delete(vehicles).where(eq(vehicles.plate, plate)).returning({ plate: vehicles.plate });
+    if (!deleted.length) return Response.json({ error: "Vozilo nije pronađeno." }, { status: 404 });
+    return Response.json({ deleted: true, plate });
+  } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Vozilo nije obrisano." }, { status: 500 }); }
+}

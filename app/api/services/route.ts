@@ -32,3 +32,13 @@ export async function PATCH(request: Request) {
     return Response.json({ service });
   } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Izmene nisu sačuvane." }, { status: 500 }); }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const code = clean(new URL(request.url).searchParams.get("code"));
+    if (!code) return Response.json({ error: "Nedostaje servisni zapis." }, { status: 400 });
+    const deleted = await getDb().delete(serviceRecords).where(eq(serviceRecords.code, code)).returning({ code: serviceRecords.code });
+    if (!deleted.length) return Response.json({ error: "Servisni zapis nije pronađen." }, { status: 404 });
+    return Response.json({ deleted: true, code });
+  } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Zapis nije obrisan." }, { status: 500 }); }
+}

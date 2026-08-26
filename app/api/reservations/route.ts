@@ -48,9 +48,26 @@ export async function PATCH(request: Request) {
     if (!code || !allowed.includes(status)) {
       return Response.json({ error: "Izaberite ispravan status rezervacije." }, { status: 400 });
     }
-    const [reservation] = await getDb().update(reservations).set({ status }).where(eq(reservations.code, code)).returning();
-    return Response.json({ reservation: reservation || { code, status }, demo: !reservation });
+    const hasDetails = Boolean(clean(body.client));
+    const values = hasDetails ? { client: clean(body.client), vehicle: clean(body.vehicle), startsAt: clean(body.startsAt), endsAt: clean(body.endsAt), location: clean(body.location), price: Math.round(Number(body.price)), status } : { status };
+    if (hasDetails) {
+      const start = new Date(String(values.startsAt)); const end = new Date(String(values.endsAt));
+      if (!values.client || !values.vehicle || !values.location || !Number.isFinite(Number(values.price)) || Number(values.price) < 0 || !Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || end <= start) return Response.json({ error: "Podaci rezervacije nisu ispravni." }, { status: 400 });
+    }
+    const [reservation] = await getDb().update(reservations).set(values).where(eq(reservations.code, code)).returning();
+    if (!reservation) return Response.json({ error: "Rezervacija nije pronađena." }, { status: 404 });
+    return Response.json({ reservation });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Status nije sačuvan." }, { status: 500 });
   }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const code = clean(new URL(request.url).searchParams.get("code"));
+    if (!code) return Response.json({ error: "Nedostaje rezervacija." }, { status: 400 });
+    const deleted = await getDb().delete(reservations).where(eq(reservations.code, code)).returning({ code: reservations.code });
+    if (!deleted.length) return Response.json({ error: "Rezervacija nije pronađena." }, { status: 404 });
+    return Response.json({ deleted: true, code });
+  } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Rezervacija nije obrisana." }, { status: 500 }); }
 }
