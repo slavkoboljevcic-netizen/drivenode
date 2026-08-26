@@ -1,0 +1,11 @@
+.search-state {
+  color: #71809c;
+  font-size: 11px;
+  padding: 14px;
+}
+
+.search-results button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
