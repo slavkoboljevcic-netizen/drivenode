@@ -8,6 +8,7 @@ import "./documents.css";
 import "./reports.css";
 import "./users.css";
 import "./row-menu.css";
+import "./drawer-animations.css";
 import DashboardLive from "./DashboardLive";
 import GlobalSearch from "./GlobalSearch";
 import VehicleOperationsCrud from "./VehicleOperationsCrud";
