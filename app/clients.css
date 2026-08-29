@@ -1,1 +1,139 @@
-.reservation-form textarea,.add-vehicle textarea,.client-notes textarea{width:100%;min-height:90px;border:1px solid var(--line);border-radius:7px;padding:10px;margin-top:7px;font:inherit;resize:vertical}.client-hero{display:flex;align-items:center;gap:13px;margin:18px 0}.client-hero>span{width:52px;height:52px;display:grid;place-items:center;border-radius:50%;background:#edf3ff;color:#3b71f3;font-weight:800}.client-hero h2{margin:0 0 6px;font-size:20px}.client-tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:0 -26px;padding:0 26px}.client-tabs button{border:0;background:transparent;padding:12px 8px;font-size:9px;color:#748098;cursor:pointer}.client-tabs button.active{color:#3b71f3;border-bottom:2px solid #3b71f3;font-weight:700}.client-contact{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:22px 0}.client-contact small,.client-contact b{display:block}.client-contact small{font-size:8px;color:#8d98aa;margin-bottom:5px}.client-contact b{font-size:10px}.client-edit{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding-top:20px}.client-edit label{font-size:9px;font-weight:700}.client-edit input,.client-edit select{display:block;width:100%;height:38px;border:1px solid var(--line);border-radius:7px;padding:0 9px;margin-top:6px}.client-edit .modal-actions,.client-edit .form-error{grid-column:1/-1}.client-records{padding-top:14px}.client-records>button{width:100%;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);background:#fff;border-radius:8px;padding:11px;margin:7px 0;text-align:left;cursor:pointer}.client-records>button:hover{background:#f8faff}.client-records b,.client-records small{display:block;font-size:9px}.client-records small{color:#8d98aa;margin-top:5px}.client-records>button>span{color:#3b71f3;font-size:9px}.client-notes{padding-top:20px}.client-notes button{width:100%;margin-top:10px}@media(max-width:480px){.client-edit,.client-contact{grid-template-columns:1fr}}
+.reservation-form textarea,
+.add-vehicle textarea,
+.client-notes textarea {
+  width: 100%;
+  min-height: 90px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  margin-top: 7px;
+  font: inherit;
+  resize: vertical;
+}
+.client-hero {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin: 18px 0;
+}
+.client-hero > span {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #edf3ff;
+  color: #3b71f3;
+  font-weight: 800;
+}
+.client-hero h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+.client-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin: 0 -26px;
+  padding: 0 26px;
+}
+.client-tabs button {
+  border: 0;
+  background: transparent;
+  padding: 12px 8px;
+  font-size: 9px;
+  color: #748098;
+  cursor: pointer;
+}
+.client-tabs button.active {
+  color: #3b71f3;
+  border-bottom: 2px solid #3b71f3;
+  font-weight: 700;
+}
+.client-contact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  padding: 22px 0;
+}
+.client-contact small,
+.client-contact b {
+  display: block;
+}
+.client-contact small {
+  font-size: 8px;
+  color: #8d98aa;
+  margin-bottom: 5px;
+}
+.client-contact b {
+  font-size: 10px;
+}
+.client-edit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-top: 20px;
+}
+.client-edit label {
+  font-size: 9px;
+  font-weight: 700;
+}
+.client-edit input,
+.client-edit select {
+  display: block;
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 9px;
+  margin-top: 6px;
+}
+.client-edit .modal-actions,
+.client-edit .form-error {
+  grid-column: 1/-1;
+}
+.client-records {
+  padding-top: 14px;
+}
+.client-records > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 11px;
+  margin: 7px 0;
+  text-align: left;
+  cursor: pointer;
+}
+.client-records > button:hover {
+  background: #f8faff;
+}
+.client-records b,
+.client-records small {
+  display: block;
+  font-size: 9px;
+}
+.client-records small {
+  color: #8d98aa;
+  margin-top: 5px;
+}
+.client-records > button > span {
+  color: #3b71f3;
+  font-size: 9px;
+}
+.client-notes {
+  padding-top: 20px;
+}
+.client-notes button {
+  width: 100%;
+  margin-top: 10px;
+}
+@media (max-width: 480px) {
+  .client-edit,
+  .client-contact {
+    grid-template-columns: 1fr;
+  }
+}

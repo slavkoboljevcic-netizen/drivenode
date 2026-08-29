@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import "./global-search.css";
+import Button from "./Button";
 
 type Vehicle = { name: string; plate: string; year: number; km: string; location: string; status: string; service: string; vin: string; fuel: string; transmission: string };
 type Booking = { id: string; client: string; vehicle: string; from: string; to: string; price: string; status: string };
@@ -45,5 +46,5 @@ export default function GlobalSearch({ openVehicle, openBooking, go }: { openVeh
     } else go("Klijenti");
   };
 
-  return <div className="search"><span>⌕</span><input ref={input} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Pretraži vozila, rezervacije, klijente..." aria-label="Globalna pretraga"/><kbd>⌘ K</kbd>{query.trim().length >= 2 && <div className="search-results">{loading && <div className="search-state">Pretraživanje…</div>}{!loading && results.map((result) => <button key={`${result.type}-${result.id}`} onClick={() => choose(result)}><b>{result.title}</b><small>{result.type === "vehicle" ? "Vozilo" : result.type === "reservation" ? "Rezervacija" : "Klijent"} • {result.subtitle}</small></button>)}{!loading && !results.length && <div className="search-state">Nema rezultata za „{query}”.</div>}</div>}</div>;
+  return <div className="search"><span>⌕</span><input ref={input} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Pretraži vozila, rezervacije, klijente..." aria-label="Globalna pretraga"/><kbd>⌘ K</kbd>{query.trim().length >= 2 && <div className="search-results">{loading && <div className="search-state">Pretraživanje…</div>}{!loading && results.map((result) => <Button key={`${result.type}-${result.id}`} onClick={() => choose(result)}><b>{result.title}</b><small>{result.type === "vehicle" ? "Vozilo" : result.type === "reservation" ? "Rezervacija" : "Klijent"} • {result.subtitle}</small></Button>)}{!loading && !results.length && <div className="search-state">Nema rezultata za „{query}”.</div>}</div>}</div>;
 }
