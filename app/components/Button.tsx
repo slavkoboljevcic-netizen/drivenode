@@ -14,8 +14,15 @@ const variantClasses: Record<ButtonVariant, string> = {
   danger: "danger",
 };
 
-export default function Button({ variant, className = "", children, ...props }: ButtonProps) {
-  const resolvedClassName = [variant ? variantClasses[variant] : "", className].filter(Boolean).join(" ");
+export default function Button({
+  variant,
+  className = "",
+  children,
+  ...props
+}: ButtonProps) {
+  const resolvedClassName = [variant ? variantClasses[variant] : "", className]
+    .filter(Boolean)
+    .join(" ");
   return (
     <button {...props} className={resolvedClassName || undefined}>
       {children}

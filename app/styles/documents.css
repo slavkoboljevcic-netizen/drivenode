@@ -1,0 +1,69 @@
+.doc-stats button {
+  flex: 1;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: #fff;
+  text-align: left;
+  padding-left: 20px;
+  cursor: pointer;
+}
+.doc-stats button:last-child {
+  border: 0;
+}
+.doc-stats button:hover b {
+  color: #3b71f3;
+}
+.folder.active {
+  border-color: #3b71f3;
+  background: #f5f8ff;
+}
+.upload-zone {
+  display: grid !important;
+  place-items: center;
+  min-height: 130px;
+  border: 2px dashed #b7c6e5;
+  border-radius: 10px;
+  background: #f8faff;
+  color: #6f7f99;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+.upload-zone input {
+  display: none;
+}
+.upload-zone b {
+  font-size: 10px;
+  color: #3b71f3;
+}
+.document-icon {
+  width: 90px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  margin: 20px auto;
+  background: #edf3ff;
+  color: #3b71f3;
+  border-radius: 16px;
+  font-size: 40px;
+}
+.document-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+.document-actions button {
+  height: 40px;
+}
+@media (max-width: 600px) {
+  .doc-stats {
+    display: grid;
+  }
+  .doc-stats button {
+    border: 0;
+    padding: 8px;
+  }
+  .document-actions {
+    grid-template-columns: 1fr;
+  }
+}
