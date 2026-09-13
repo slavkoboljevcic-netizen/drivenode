@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { vehicles } from "../../../db/schema";
 
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const name = clean(body.name);
-    const plate = clean(body.plate).toUpperCase();
+    const plate = clean(body.plate);
     const location = clean(body.location);
     const status = clean(body.status) || "Dostupno";
     const service = clean(body.service) || "Nije zakazano";
@@ -26,11 +26,14 @@ export async function POST(request: Request) {
     const transmission = clean(body.transmission);
     const year = Number(body.year);
     const km = Number(body.km);
-    if (!name || !plate || !location || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+    if (!plate) {
+      return Response.json({ error: "Unesite registarsku oznaku. Prihvaćeni su svi formati tablica." }, { status: 400 });
+    }
+    if (!name || !location || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
       return Response.json({ error: "Popunite sva obavezna polja ispravnim podacima." }, { status: 400 });
     }
     const db = getDb();
-    const duplicate = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.plate, plate)).limit(1);
+    const duplicate = await db.select({ id: vehicles.id }).from(vehicles).where(sql`lower(${vehicles.plate}) = lower(${plate})`).limit(1);
     if (duplicate.length) return Response.json({ error: "Vozilo sa ovim registarskim tablicama već postoji." }, { status: 409 });
     const [vehicle] = await db.insert(vehicles).values({ name, plate, location, status, service, vin, fuel, transmission, year, km: Math.round(km) }).returning();
     return Response.json({ vehicle }, { status: 201 });
@@ -44,9 +47,9 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
-    const originalPlate = clean(body.originalPlate).toUpperCase();
+    const originalPlate = clean(body.originalPlate);
     const name = clean(body.name);
-    const plate = clean(body.plate).toUpperCase();
+    const plate = clean(body.plate);
     const location = clean(body.location);
     const status = clean(body.status);
     const service = clean(body.service) || "Nije zakazano";
@@ -74,7 +77,7 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const plate = clean(new URL(request.url).searchParams.get("plate")).toUpperCase();
+    const plate = clean(new URL(request.url).searchParams.get("plate"));
     if (!plate) return Response.json({ error: "Nedostaje vozilo." }, { status: 400 });
     const deleted = await getDb().delete(vehicles).where(eq(vehicles.plate, plate)).returning({ plate: vehicles.plate });
     if (!deleted.length) return Response.json({ error: "Vozilo nije pronađeno." }, { status: 404 });

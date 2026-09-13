@@ -689,11 +689,16 @@ function AddVehicleModal({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const plate = form.plate.trim();
+    if (!plate) {
+      setError("Unesite registarsku oznaku. Prihvaćeni su svi formati tablica.");
+      return;
+    }
     if (
       existing.some(
         (v) =>
-          v.plate.replace(/\s/g, "").toLowerCase() ===
-          form.plate.replace(/\s/g, "").toLowerCase(),
+          v.plate.trim().toLocaleLowerCase("sr") ===
+          plate.toLocaleLowerCase("sr"),
       )
     ) {
       setError("Vozilo sa ovim registarskim tablicama već postoji.");
@@ -706,6 +711,7 @@ function AddVehicleModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          plate,
           year: Number(form.year),
           km: Number(form.km),
         }),
@@ -748,9 +754,13 @@ function AddVehicleModal({
               Registarske tablice *
               <CustomInput
                 required
+                type="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
                 value={form.plate}
-                onChange={(e) => set("plate", e.target.value.toUpperCase())}
-                placeholder="BG 1234-AA"
+                onChange={(e) => set("plate", e.target.value)}
+                placeholder="Domaće, strane, probne ili druge tablice"
               />
             </label>
             <label>
@@ -1076,6 +1086,11 @@ function EditVehicleModal({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const plate = form.plate.trim();
+    if (!plate) {
+      setError("Unesite registarsku oznaku. Prihvaćeni su svi formati tablica.");
+      return;
+    }
     setSaving(true);
     try {
       const r = await fetch("/api/vehicles", {
@@ -1083,6 +1098,7 @@ function EditVehicleModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          plate,
           originalPlate: vehicle.plate,
           year: Number(form.year),
           km: Number(form.km),
@@ -1121,8 +1137,12 @@ function EditVehicleModal({
               Tablice
               <CustomInput
                 required
+                type="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
                 value={form.plate}
-                onChange={(e) => set("plate", e.target.value.toUpperCase())}
+                onChange={(e) => set("plate", e.target.value)}
               />
             </label>
             <label>
