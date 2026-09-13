@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import "../styles/global-search.css";
 import Button from "./Button";
+import CustomInput from "./CustomInput";
 import { SearchIcon } from "./icons";
 
 type Vehicle = {
@@ -125,7 +126,7 @@ export default function GlobalSearch({
       <span>
         <SearchIcon aria-hidden="true" />
       </span>
-      <input
+      <CustomInput
         ref={input}
         value={query}
         onChange={(event) => {

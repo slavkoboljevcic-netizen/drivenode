@@ -7,17 +7,27 @@
 .finance-filters .table-search {
   flex: 1;
 }
-.finance-filters select,
+.finance-filters .custom-select,
 .finance-filters button,
 .finance-chart .panel-head button {
   height: 36px;
+}
+.finance-filters button,
+.finance-chart .panel-head button {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 7px;
   padding: 0 10px;
   color: #637088;
-  font-size: 9px;
+  font-size: 13px;
   cursor: pointer;
+}
+.finance-filters .custom-select__button {
+  border-color: var(--line);
+  border-radius: 7px;
+  color: #637088;
+  font-size: 13px;
+  padding: 0 10px;
 }
 .clickable-chart {
   cursor: pointer;
@@ -29,7 +39,7 @@
   display: block;
   text-align: center;
   color: #3b71f3;
-  font-size: 8px;
+  font-size: 12px;
 }
 .income {
   color: #188b67 !important;
@@ -48,7 +58,7 @@
   display: block;
 }
 .transaction-amount small {
-  font-size: 8px;
+  font-size: 12px;
   color: #8d98aa;
 }
 .transaction-amount b {
@@ -62,7 +72,7 @@
   .finance-filters .table-search {
     min-width: 100%;
   }
-  .finance-filters select {
+  .finance-filters .custom-select {
     flex: 1;
   }
 }

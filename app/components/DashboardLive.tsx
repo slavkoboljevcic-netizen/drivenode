@@ -12,7 +12,7 @@ import {
   UserAddIcon,
   VehicleIcon,
 } from "./icons";
-import { EmptyState, KpiCard, PageHeader, onKeyboardAction } from "./ui";
+import { EmptyState, KpiCard, onKeyboardAction } from "./ui";
 
 type Booking = {
   id: string;
@@ -108,12 +108,14 @@ export default function DashboardLive({
   newReservation,
   addVehicle,
   newClient,
+  userName,
 }: {
   go: (page: string) => void;
   openBooking: (booking: Booking) => void;
   newReservation: () => void;
   addVehicle: () => void;
   newClient: () => void;
+  userName: string;
 }) {
   const [period, setPeriod] = useState(30);
   const [data, setData] = useState<Overview>(empty);
@@ -206,27 +208,23 @@ export default function DashboardLive({
   ];
 
   return (
-    <>
-      <PageHeader
-        eyebrow={new Date()
-          .toLocaleDateString("sr-Latn-RS", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-          })
-          .toUpperCase()}
-        title={
-          <>
-            Dobro došli{" "}
+    <div className="home-dashboard">
+      <section className="home-hero">
+        <div className="home-welcome">
+          <h1>
+            Dobro došli, {userName}{" "}
             <ClientsIcon className="welcome-icon" aria-hidden="true" />
-          </>
-        }
-        subtitle={
-          loading
-            ? "Učitavanje poslovnih podataka…"
-            : "Pregled je povezan sa stvarnim zapisima vaše firme."
-        }
-      />
+          </h1>
+        </div>
+        <div className="home-status">
+          <small>Stanje sistema</small>
+          <strong>{data.counts.vehicles} vozila</strong>
+          <span>
+            {data.counts.reservations} rezervacija • {data.counts.clients}{" "}
+            klijenata
+          </span>
+        </div>
+      </section>
       <div className="kpi-grid">
         {kpis.map((item, index) => (
           <KpiCard
@@ -260,7 +258,10 @@ export default function DashboardLive({
               }}
             >
               {period} dana
-              <ChevronDownIcon className="button-icon button-icon-right" aria-hidden="true" />
+              <ChevronDownIcon
+                className="button-icon button-icon-right"
+                aria-hidden="true"
+              />
             </Button>
           </div>
           <div className="revenue-stat">
@@ -268,15 +269,21 @@ export default function DashboardLive({
             <span>iz plaćenih prihoda</span>
           </div>
           <div className="dashboard-revenue-bars">
-            {revenue.map((item) => (
-              <i
-                key={item.date}
-                title={`${item.date}: ${rsd(item.value)}`}
-                style={{
-                  height: `${Math.max(3, Math.round((item.value / maxRevenue) * 100))}%`,
-                }}
-              />
-            ))}
+            {revenue.length ? (
+              revenue.map((item) => (
+                <i
+                  key={item.date}
+                  title={`${item.date}: ${rsd(item.value)}`}
+                  style={{
+                    height: `${Math.max(3, Math.round((item.value / maxRevenue) * 100))}%`,
+                  }}
+                />
+              ))
+            ) : (
+              <div className="chart-empty">
+                Nema evidentiranog prihoda za izabrani period.
+              </div>
+            )}
           </div>
           <div className="chart-labels static">
             <span>Početak</span>
@@ -427,6 +434,6 @@ export default function DashboardLive({
           </Button>
         </section>
       </div>
-    </>
+    </div>
   );
 }

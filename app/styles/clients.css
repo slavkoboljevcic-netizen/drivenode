@@ -1,14 +1,35 @@
 .reservation-form textarea,
 .add-vehicle textarea,
 .client-notes textarea {
+  background: #fbfdff;
+  color: #263149;
   width: 100%;
   min-height: 90px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 10px;
-  margin-top: 7px;
+  border: 1px solid #d8e1ee;
+  border-radius: 10px;
+  padding: 11px 12px;
+  margin-top: 8px;
   font: inherit;
+  font-weight: 400;
+  line-height: 1.5;
+  outline: 0;
   resize: vertical;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.reservation-form textarea::placeholder,
+.add-vehicle textarea::placeholder,
+.client-notes textarea::placeholder {
+  color: #8b96aa;
+  font-weight: 400;
+}
+.reservation-form textarea:focus,
+.add-vehicle textarea:focus,
+.client-notes textarea:focus {
+  border-color: #3b71f3;
+  box-shadow: 0 0 0 3px #3b71f31a;
 }
 .client-hero {
   display: flex;
@@ -41,7 +62,7 @@
   border: 0;
   background: transparent;
   padding: 12px 8px;
-  font-size: 9px;
+  font-size: 13px;
   color: #748098;
   cursor: pointer;
 }
@@ -61,12 +82,12 @@
   display: block;
 }
 .client-contact small {
-  font-size: 8px;
+  font-size: 12px;
   color: #8d98aa;
   margin-bottom: 5px;
 }
 .client-contact b {
-  font-size: 10px;
+  font-size: 14px;
 }
 .client-edit {
   display: grid;
@@ -75,18 +96,50 @@
   padding-top: 20px;
 }
 .client-edit label {
-  font-size: 9px;
-  font-weight: 700;
+  color: #60708a;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.35;
 }
-.client-edit input,
-.client-edit select {
+.client-edit .custom-input {
+  background: #fbfdff;
+  color: #263149;
   display: block;
   width: 100%;
-  height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  padding: 0 9px;
-  margin-top: 6px;
+  height: 42px;
+  border: 1px solid #d8e1ee;
+  border-radius: 10px;
+  padding: 0 12px;
+  margin-top: 8px;
+  font-weight: 400;
+  outline: 0;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.client-edit .custom-input::placeholder {
+  color: #8b96aa;
+  font-weight: 400;
+}
+.client-edit .custom-input:focus {
+  border-color: #3b71f3;
+  box-shadow: 0 0 0 3px #3b71f31a;
+}
+.client-edit .custom-select {
+  display: block;
+  height: 42px;
+  margin-top: 8px;
+  width: 100%;
+}
+.client-edit .custom-select__button {
+  background: #fbfdff;
+  border-color: #d8e1ee;
+  border-radius: 10px;
+  color: #263149;
+  font-weight: 400;
+  padding: 0 12px;
 }
 .client-edit .modal-actions,
 .client-edit .form-error {
@@ -114,7 +167,7 @@
 .client-records b,
 .client-records small {
   display: block;
-  font-size: 9px;
+  font-size: 13px;
 }
 .client-records small {
   color: #8d98aa;
@@ -122,7 +175,7 @@
 }
 .client-records > button > span {
   color: #3b71f3;
-  font-size: 9px;
+  font-size: 13px;
 }
 .client-notes {
   padding-top: 20px;

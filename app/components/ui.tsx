@@ -77,9 +77,9 @@ export function KpiCard({
 
   if (onClick) {
     return (
-      <button type="button" className="kpi clickable" onClick={onClick}>
+      <Button type="button" className="kpi clickable" onClick={onClick}>
         {content}
-      </button>
+      </Button>
     );
   }
 
@@ -101,7 +101,7 @@ export function DrawerFrame({
 }) {
   return (
     <div className="drawer-wrap">
-      <button
+      <Button
         type="button"
         className="drawer-backdrop"
         aria-label="Zatvori panel"

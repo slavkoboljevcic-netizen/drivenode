@@ -40,7 +40,7 @@
 }
 .role-grid em {
   font-style: normal;
-  font-size: 8px;
+  font-size: 12px;
   color: #3b71f3;
   margin-top: 14px;
 }
@@ -67,7 +67,7 @@
   border-radius: 50%;
   background: #edf3ff;
   color: #3b71f3;
-  font-size: 9px;
+  font-size: 13px;
 }
 .activity-log div {
   flex: 1;
@@ -75,18 +75,18 @@
 .activity-log b,
 .activity-log small {
   display: block;
-  font-size: 9px;
+  font-size: 13px;
 }
 .activity-log small {
   color: #8d98aa;
   margin-top: 4px;
 }
 .activity-log em {
-  font-size: 8px;
+  font-size: 12px;
   color: #8d98aa;
 }
 .permission-title {
-  font-size: 12px;
+  font-size: 15px;
   margin-top: 24px;
 }
 .permission-list {
@@ -106,7 +106,7 @@
 .permission-list b,
 .permission-list small {
   display: block;
-  font-size: 9px;
+  font-size: 13px;
 }
 .permission-list small {
   color: #8d98aa;

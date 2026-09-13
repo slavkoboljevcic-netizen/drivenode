@@ -53,6 +53,7 @@ export {
   FiArrowLeft as BackIcon,
   FiArrowRight as ArrowRightIcon,
   FiBell as BellIcon,
+  FiCalendar as CalendarIcon,
   FiCheck as CheckIcon,
   FiChevronDown as ChevronDownIcon,
   FiChevronRight as ChevronRightIcon,

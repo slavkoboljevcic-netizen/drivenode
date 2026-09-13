@@ -3,12 +3,12 @@
   border-bottom: 1px solid #e8edf4;
   display: flex;
   gap: 4px;
-  height: 145px;
-  padding-top: 12px;
+  height: 150px;
+  padding-top: 14px;
 }
 
 .dashboard-revenue-bars i {
-  background: linear-gradient(180deg, #3b82f6, #93c5fd);
+  background: #3b71f3;
   border-radius: 5px 5px 1px 1px;
   display: block;
   flex: 1;

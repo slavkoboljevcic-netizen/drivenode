@@ -20,11 +20,15 @@ export default function Button({
   children,
   ...props
 }: ButtonProps) {
-  const resolvedClassName = [variant ? variantClasses[variant] : "", className]
+  const resolvedClassName = [
+    "ui-button",
+    variant ? variantClasses[variant] : "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
   return (
-    <button {...props} className={resolvedClassName || undefined}>
+    <button {...props} className={resolvedClassName}>
       {children}
     </button>
   );

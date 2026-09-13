@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useState } from "react";
 import "../styles/vehicle-operations-crud.css";
 import Button from "./Button";
+import CustomDatePicker from "./CustomDatePicker";
+import CustomInput from "./CustomInput";
+import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
 type Vehicle = { name: string; plate: string; km: string; location: string };
@@ -236,7 +239,7 @@ function Drawer({
                   ? "Opis štete"
                   : "Opis troška"}{" "}
             *
-            <input
+            <CustomInput
               required
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
@@ -245,7 +248,7 @@ function Drawer({
           <div className="add-form-grid">
             <label>
               {tab === "Rezervacije" ? "Preuzimanje" : "Datum"} *
-              <input
+              <CustomDatePicker
                 required
                 type={tab === "Rezervacije" ? "datetime-local" : "date"}
                 value={form.date}
@@ -255,7 +258,7 @@ function Drawer({
             {tab === "Rezervacije" && (
               <label>
                 Vraćanje *
-                <input
+                <CustomDatePicker
                   required
                   type="datetime-local"
                   value={form.endDate}
@@ -265,7 +268,7 @@ function Drawer({
             )}
             <label>
               {tab === "Rezervacije" ? "Cena" : "Iznos / procena"} (RSD)
-              <input
+              <CustomInput
                 type="number"
                 min="0"
                 value={form.amount}
@@ -274,19 +277,19 @@ function Drawer({
             </label>
             <label>
               Status
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
                 {statuses(tab).map((s) => (
                   <option key={s}>{s}</option>
                 ))}
-              </select>
+              </CustomSelect>
             </label>
             {tab === "Servisi" && (
               <label>
                 Radionica
-                <input
+                <CustomInput
                   value={form.workshop}
                   onChange={(e) => set("workshop", e.target.value)}
                 />

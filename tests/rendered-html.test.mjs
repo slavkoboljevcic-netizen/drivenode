@@ -38,7 +38,7 @@ test("server-renders the DriveNode shell metadata", async () => {
   assert.doesNotMatch(html, /Your site is taking shape|Building your site/i);
 });
 
-test("keeps app structure, local Inter font and npm package setup", async () => {
+test("keeps app structure, local Montserrat font and npm package setup", async () => {
   const [layout, page, globals, packageJson, components, styles] =
     await Promise.all([
       readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -54,14 +54,14 @@ test("keeps app structure, local Inter font and npm package setup", async () => 
   assert.match(page, /from "\.\/components\/DashboardLive"/);
   assert.match(page, /from "\.\/components\/GlobalSearch"/);
   assert.match(page, /from "\.\/components\/VehicleOperationsCrud"/);
-  assert.match(globals, /font-family:\s*"Inter"/);
-  assert.match(globals, /url\("\/Inter\.ttf"\)/);
+  assert.match(globals, /font-family:\s*"Montserrat"/);
+  assert.match(globals, /url\("\/Montserrat\.ttf"\)/);
   assert.match(packageJson, /"name":\s*"drivenode"/);
   assert.match(packageJson, /"react-icons":\s*"\^5\.7\.0"/);
   assert.ok(components.includes("ui.tsx"));
   assert.ok(styles.includes("globals.css"));
 
-  await access(new URL("../public/Inter.ttf", import.meta.url));
+  await access(new URL("../public/Montserrat.ttf", import.meta.url));
   await assert.rejects(access(new URL("pnpm-lock.yaml", projectRoot)));
   await assert.rejects(access(new URL("pnpm-workspace.yaml", projectRoot)));
   await assert.rejects(access(new URL("app/_sites-preview", projectRoot)));

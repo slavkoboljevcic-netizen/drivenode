@@ -28,11 +28,11 @@
   cursor: pointer;
   margin-bottom: 16px;
 }
-.upload-zone input {
+.upload-zone .custom-input {
   display: none;
 }
 .upload-zone b {
-  font-size: 10px;
+  font-size: 14px;
   color: #3b71f3;
 }
 .document-icon {

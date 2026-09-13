@@ -18,7 +18,7 @@ export default function ErrorPage({
         display: "grid",
         placeItems: "center",
         background: "#f5f7fb",
-        fontFamily: "Inter,system-ui,sans-serif",
+        fontFamily: "Montserrat,system-ui,sans-serif",
         padding: 24,
       }}
     >

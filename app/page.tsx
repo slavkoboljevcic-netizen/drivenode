@@ -15,10 +15,14 @@ import "./styles/reports.css";
 import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
+import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
 import VehicleOperationsCrud from "./components/VehicleOperationsCrud";
 import Button from "./components/Button";
+import CustomDatePicker from "./components/CustomDatePicker";
+import CustomInput from "./components/CustomInput";
+import CustomSelect from "./components/CustomSelect";
 import {
   DrawerFrame,
   EmptyState,
@@ -175,6 +179,11 @@ const pageFromPath = (path: string) =>
                       : "Pregled";
 const vehicles: V[] = [];
 const bookings: B[] = [];
+const defaultCurrentUser = {
+  initials: "AD",
+  name: "Administrator",
+  role: "Administrator",
+};
 const tone = (s = "") =>
   s.includes("Dostupno") || s.includes("Plaćeno") || s.includes("Aktivan")
     ? "green"
@@ -523,19 +532,19 @@ function Vehicles({
         <div className="toolbar">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Marka, model, tablice ili lokacija..."
             />
           </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Svi statusi</option>
             <option>Dostupno</option>
             <option>Iznajmljeno</option>
             <option>Rezervisano</option>
             <option>Na servisu</option>
-          </select>
+          </CustomSelect>
           <Button
             className={more ? "filter-active" : ""}
             onClick={() => setMore((x) => !x)}
@@ -548,7 +557,7 @@ function Vehicles({
           <div className="advanced-filters">
             <label>
               Lokacija
-              <select
+              <CustomSelect
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               >
@@ -556,10 +565,10 @@ function Vehicles({
                 <option>Beograd</option>
                 <option>Novi Sad</option>
                 <option>Niš</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
-              <input
+              <CustomInput
                 type="checkbox"
                 checked={sortNew}
                 onChange={(e) => setSortNew(e.target.checked)}
@@ -727,7 +736,7 @@ function AddVehicleModal({
         <form onSubmit={submit}>
           <label>
             Marka i model *
-            <input
+            <CustomInput
               required
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
@@ -737,7 +746,7 @@ function AddVehicleModal({
           <div className="add-form-grid">
             <label>
               Registarske tablice *
-              <input
+              <CustomInput
                 required
                 value={form.plate}
                 onChange={(e) => set("plate", e.target.value.toUpperCase())}
@@ -746,7 +755,7 @@ function AddVehicleModal({
             </label>
             <label>
               Godište *
-              <input
+              <CustomInput
                 required
                 type="number"
                 min="1990"
@@ -757,7 +766,7 @@ function AddVehicleModal({
             </label>
             <label>
               Kilometraža *
-              <input
+              <CustomInput
                 required
                 type="number"
                 min="0"
@@ -767,7 +776,7 @@ function AddVehicleModal({
             </label>
             <label>
               Lokacija *
-              <select
+              <CustomSelect
                 value={form.location}
                 onChange={(e) => set("location", e.target.value)}
               >
@@ -777,11 +786,11 @@ function AddVehicleModal({
                 <option>Novi Sad • Centar</option>
                 <option>Novi Sad • Stanica</option>
                 <option>Niš • Aerodrom</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Status *
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
@@ -789,11 +798,11 @@ function AddVehicleModal({
                 <option>Rezervisano</option>
                 <option>Iznajmljeno</option>
                 <option>Na servisu</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               VIN
-              <input
+              <CustomInput
                 maxLength={17}
                 value={form.vin}
                 onChange={(e) => set("vin", e.target.value.toUpperCase())}
@@ -802,7 +811,7 @@ function AddVehicleModal({
             </label>
             <label>
               Gorivo
-              <select
+              <CustomSelect
                 value={form.fuel}
                 onChange={(e) => set("fuel", e.target.value)}
               >
@@ -812,22 +821,22 @@ function AddVehicleModal({
                 <option>Hibrid</option>
                 <option>Električno</option>
                 <option>TNG</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Menjač
-              <select
+              <CustomSelect
                 value={form.transmission}
                 onChange={(e) => set("transmission", e.target.value)}
               >
                 <option value="">Izaberite</option>
                 <option>Manuelni</option>
                 <option>Automatski</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Sledeći servis
-              <input
+              <CustomInput
                 value={form.service}
                 onChange={(e) => set("service", e.target.value)}
                 placeholder="npr. 12. okt 2026"
@@ -1101,7 +1110,7 @@ function EditVehicleModal({
         <form onSubmit={submit}>
           <label>
             Marka i model
-            <input
+            <CustomInput
               required
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
@@ -1110,7 +1119,7 @@ function EditVehicleModal({
           <div className="add-form-grid">
             <label>
               Tablice
-              <input
+              <CustomInput
                 required
                 value={form.plate}
                 onChange={(e) => set("plate", e.target.value.toUpperCase())}
@@ -1118,7 +1127,7 @@ function EditVehicleModal({
             </label>
             <label>
               Godište
-              <input
+              <CustomInput
                 required
                 type="number"
                 value={form.year}
@@ -1127,7 +1136,7 @@ function EditVehicleModal({
             </label>
             <label>
               Kilometraža
-              <input
+              <CustomInput
                 required
                 type="number"
                 value={form.km}
@@ -1136,7 +1145,7 @@ function EditVehicleModal({
             </label>
             <label>
               Lokacija
-              <select
+              <CustomSelect
                 value={form.location}
                 onChange={(e) => set("location", e.target.value)}
               >
@@ -1145,11 +1154,11 @@ function EditVehicleModal({
                 <option>Beograd • Dorćol</option>
                 <option>Novi Sad • Centar</option>
                 <option>Niš • Aerodrom</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Status
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
@@ -1157,11 +1166,11 @@ function EditVehicleModal({
                 <option>Iznajmljeno</option>
                 <option>Rezervisano</option>
                 <option>Na servisu</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               VIN
-              <input
+              <CustomInput
                 maxLength={17}
                 value={form.vin || ""}
                 onChange={(e) => set("vin", e.target.value.toUpperCase())}
@@ -1169,7 +1178,7 @@ function EditVehicleModal({
             </label>
             <label>
               Gorivo
-              <select
+              <CustomSelect
                 value={form.fuel || ""}
                 onChange={(e) => set("fuel", e.target.value)}
               >
@@ -1179,22 +1188,22 @@ function EditVehicleModal({
                 <option>Hibrid</option>
                 <option>Električno</option>
                 <option>TNG</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Menjač
-              <select
+              <CustomSelect
                 value={form.transmission || ""}
                 onChange={(e) => set("transmission", e.target.value)}
               >
                 <option value="">Izaberite</option>
                 <option>Manuelni</option>
                 <option>Automatski</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Sledeći servis
-              <input
+              <CustomInput
                 value={form.service}
                 onChange={(e) => set("service", e.target.value)}
               />
@@ -1357,13 +1366,13 @@ function Reservations({
         <div className="toolbar">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Broj rezervacije, klijent ili vozilo..."
             />
           </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Svi statusi</option>
             <option>Na čekanju</option>
             <option>Potvrđena</option>
@@ -1371,7 +1380,7 @@ function Reservations({
             <option>Povrat danas</option>
             <option>Završena</option>
             <option>Otkazana</option>
-          </select>
+          </CustomSelect>
           <Button
             className={more ? "filter-active" : ""}
             onClick={() => setMore((x) => !x)}
@@ -1384,7 +1393,7 @@ function Reservations({
           <div className="advanced-filters">
             <label>
               Vozilo
-              <select
+              <CustomSelect
                 value={vehicle}
                 onChange={(e) => setVehicle(e.target.value)}
               >
@@ -1392,10 +1401,10 @@ function Reservations({
                 {[...new Set(all.map((b) => b.vehicle))].map((v) => (
                   <option key={v}>{v}</option>
                 ))}
-              </select>
+              </CustomSelect>
             </label>
             <label>
-              <input
+              <CustomInput
                 type="checkbox"
                 checked={sortValue}
                 onChange={(e) => setSortValue(e.target.checked)}
@@ -1550,7 +1559,7 @@ function NewReservationModal({
         <form onSubmit={submit}>
           <label>
             Ime i prezime klijenta *
-            <input
+            <CustomInput
               required
               value={form.client}
               onChange={(e) => set("client", e.target.value)}
@@ -1559,7 +1568,7 @@ function NewReservationModal({
           </label>
           <label>
             Vozilo *
-            <select
+            <CustomSelect
               value={form.vehicle}
               onChange={(e) => set("vehicle", e.target.value)}
             >
@@ -1567,12 +1576,12 @@ function NewReservationModal({
               {vehicleOptions.map((v) => (
                 <option key={v}>{v}</option>
               ))}
-            </select>
+            </CustomSelect>
           </label>
           <div className="add-form-grid">
             <label>
               Preuzimanje *
-              <input
+              <CustomDatePicker
                 required
                 type="datetime-local"
                 value={form.startsAt}
@@ -1581,7 +1590,7 @@ function NewReservationModal({
             </label>
             <label>
               Vraćanje *
-              <input
+              <CustomDatePicker
                 required
                 type="datetime-local"
                 value={form.endsAt}
@@ -1590,7 +1599,7 @@ function NewReservationModal({
             </label>
             <label>
               Lokacija *
-              <select
+              <CustomSelect
                 value={form.location}
                 onChange={(e) => set("location", e.target.value)}
               >
@@ -1600,11 +1609,11 @@ function NewReservationModal({
                 <option>Novi Sad • Centar</option>
                 <option>Novi Sad • Stanica</option>
                 <option>Niš • Aerodrom</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Cena (RSD) *
-              <input
+              <CustomInput
                 required
                 type="number"
                 min="0"
@@ -1616,14 +1625,14 @@ function NewReservationModal({
             </label>
             <label>
               Status *
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
                 <option>Na čekanju</option>
                 <option>Potvrđena</option>
                 <option>Aktivna</option>
-              </select>
+              </CustomSelect>
             </label>
           </div>
           {error && <div className="form-error">{error}</div>}
@@ -1746,14 +1755,14 @@ function BookingPanel({
         </section>
         <label className="status-control">
           Promeni status
-          <select value={s} onChange={(e) => setS(e.target.value)}>
+          <CustomSelect value={s} onChange={(e) => setS(e.target.value)}>
             <option>Na čekanju</option>
             <option>Potvrđena</option>
             <option>Aktivna</option>
             <option>Povrat danas</option>
             <option>Završena</option>
             <option>Otkazana</option>
-          </select>
+          </CustomSelect>
         </label>
         {error && <div className="form-error">{error}</div>}
         <Button
@@ -1765,250 +1774,6 @@ function BookingPanel({
           {saving ? "Čuvanje…" : "Sačuvaj izmene"}
         </Button>
     </DrawerFrame>
-  );
-}
-function Calendar({
-  open,
-  newReservation,
-  refresh,
-  overrides,
-}: {
-  open: (b: B) => void;
-  newReservation: () => void;
-  refresh: number;
-  overrides: Record<string, string>;
-}) {
-  const [mode, setMode] = useState("Mesec");
-  const [cursor, setCursor] = useState(new Date(2026, 7, 24));
-  const [status, setStatus] = useState("Svi statusi");
-  const [added, setAdded] = useState<Array<B & { date: Date }>>([]);
-  useEffect(() => {
-    fetch("/api/reservations")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) =>
-        setAdded(
-          (data.reservations || []).map(
-            (r: {
-              code: string;
-              client: string;
-              vehicle: string;
-              startsAt: string;
-              endsAt: string;
-              price: number;
-              status: string;
-            }) => ({
-              id: r.code,
-              client: r.client,
-              vehicle: r.vehicle,
-              from: formatDate(r.startsAt),
-              to: formatDate(r.endsAt),
-              price: `${Number(r.price).toLocaleString("sr-RS")} RSD`,
-              status: r.status,
-              date: new Date(r.startsAt),
-            }),
-          ),
-        ),
-      )
-      .catch(() => {});
-  }, [refresh]);
-  const demo = bookings.map((b, i) => ({
-    ...b,
-    status: overrides[b.id] || b.status,
-    date: new Date(2026, 7, [24, 24, 24, 25, 26][i], [9, 11, 13, 8, 10][i]),
-  }));
-  const events = [...added, ...demo]
-    .filter((b, i, a) => a.findIndex((x) => x.id === b.id) === i)
-    .filter((b) => status === "Svi statusi" || b.status === status);
-  const same = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-  const move = (direction: number) =>
-    setCursor((d) => {
-      const n = new Date(d);
-      if (mode === "Mesec") n.setMonth(n.getMonth() + direction);
-      else n.setDate(n.getDate() + direction * (mode === "Nedelja" ? 7 : 1));
-      return n;
-    });
-  const today = () => setCursor(new Date(2026, 7, 24));
-  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-  const gridStart = new Date(monthStart);
-  gridStart.setDate(1 - ((monthStart.getDay() + 6) % 7));
-  const monthDays = Array.from({ length: 42 }, (_, i) => {
-    const d = new Date(gridStart);
-    d.setDate(gridStart.getDate() + i);
-    return d;
-  });
-  const weekStart = new Date(cursor);
-  weekStart.setDate(cursor.getDate() - ((cursor.getDay() + 6) % 7));
-  const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setDate(weekStart.getDate() + i);
-    return d;
-  });
-  const title =
-    mode === "Mesec"
-      ? cursor.toLocaleDateString("sr-Latn-RS", {
-          month: "long",
-          year: "numeric",
-        })
-      : mode === "Nedelja"
-        ? `${weekDays[0].toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short" })} — ${weekDays[6].toLocaleDateString("sr-Latn-RS", { day: "numeric", month: "short", year: "numeric" })}`
-        : cursor.toLocaleDateString("sr-Latn-RS", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          });
-  const eventButton = (b: B) => (
-    <Button
-      key={b.id}
-      className={`calendar-event ${tone(b.status)}`}
-      onClick={(e) => {
-        e.stopPropagation();
-        open(b);
-      }}
-    >
-      <b>{b.from.split("•")[1] || "09:00"}</b>{" "}
-      {b.vehicle.replace("Volkswagen ", "")} • {b.client.split(" ")[0]}
-    </Button>
-  );
-  return (
-    <>
-      <Head
-        title="Kalendar rezervacija"
-        sub="Planirajte dostupnost flote i raspored preuzimanja."
-        action="Nova rezervacija"
-        onAction={newReservation}
-      />
-      <div className="calendar-toolbar">
-        <div className="segmented">
-          {["Mesec", "Nedelja", "Dan"].map((x) => (
-            <Button
-              onClick={() => setMode(x)}
-              className={mode === x ? "active" : ""}
-              key={x}
-            >
-              {x}
-            </Button>
-          ))}
-        </div>
-        <div className="calendar-nav">
-          <Button onClick={() => move(-1)} aria-label="Prethodni period">
-            <BackIcon aria-hidden="true" />
-          </Button>
-          <Button onClick={today}>Danas</Button>
-          <Button onClick={() => move(1)} aria-label="Sledeći period">
-            <ChevronRightIcon aria-hidden="true" />
-          </Button>
-        </div>
-        <h2>{title}</h2>
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option>Svi statusi</option>
-          <option>Na čekanju</option>
-          <option>Potvrđena</option>
-          <option>Aktivna</option>
-          <option>Povrat danas</option>
-          <option>Završena</option>
-          <option>Otkazana</option>
-        </select>
-      </div>
-      {mode === "Mesec" ? (
-        <section className="calendar panel">
-          <div className="weekdays">
-            {["PON", "UTO", "SRE", "ČET", "PET", "SUB", "NED"].map((x) => (
-              <b key={x}>{x}</b>
-            ))}
-          </div>
-          <div className="calendar-grid">
-            {monthDays.map((d) => (
-              <div
-                className={`${same(d, new Date(2026, 7, 24)) ? "today " : ""}${d.getMonth() !== cursor.getMonth() ? "outside" : ""}`}
-                key={d.toISOString()}
-                role="button"
-                tabIndex={0}
-                onClick={() => {
-                  setCursor(d);
-                  setMode("Dan");
-                }}
-                onKeyDown={onKeyboardAction(() => {
-                  setCursor(d);
-                  setMode("Dan");
-                })}
-              >
-                <span>{d.getDate()}</span>
-                {events.filter((b) => same(b.date, d)).map(eventButton)}
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : mode === "Nedelja" ? (
-        <section className="panel week-calendar">
-          {weekDays.map((d) => (
-            <div
-              key={d.toISOString()}
-              className={same(d, new Date(2026, 7, 24)) ? "today" : ""}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                setCursor(d);
-                setMode("Dan");
-              }}
-              onKeyDown={onKeyboardAction(() => {
-                setCursor(d);
-                setMode("Dan");
-              })}
-            >
-              <header>
-                <b>
-                  {d.toLocaleDateString("sr-Latn-RS", { weekday: "short" })}
-                </b>
-                <span>{d.getDate()}</span>
-              </header>
-              <section>
-                {events.filter((b) => same(b.date, d)).map(eventButton)}
-                {!events.some((b) => same(b.date, d)) && (
-                  <small>Slobodan dan</small>
-                )}
-              </section>
-            </div>
-          ))}
-        </section>
-      ) : (
-        <section className="panel day-calendar">
-          <div className="day-hours">
-            {Array.from({ length: 12 }, (_, i) => (
-              <span key={i}>{String(i + 8).padStart(2, "0")}:00</span>
-            ))}
-          </div>
-          <div className="day-agenda">
-            {events.filter((b) => same(b.date, cursor)).map(eventButton)}
-            {!events.some((b) => same(b.date, cursor)) && (
-              <div className="calendar-empty">
-                <b>Nema rezervacija ovog dana</b>
-                <span>Kliknite ispod da kreirate novu rezervaciju.</span>
-              </div>
-            )}
-            <Button className="add-calendar-event" onClick={newReservation}>
-              <AddIcon className="button-icon" aria-hidden="true" />
-              Dodaj rezervaciju za ovaj dan
-            </Button>
-          </div>
-        </section>
-      )}
-      <div className="calendar-legend">
-        <Button onClick={() => setStatus("Aktivna")}>
-          <Badge s="Aktivna" />
-        </Button>
-        <Button onClick={() => setStatus("Potvrđena")}>
-          <Badge s="Potvrđena" />
-        </Button>
-        <Button onClick={() => setStatus("Povrat danas")}>
-          <Badge s="Povrat danas" />
-        </Button>
-        <Button onClick={() => setStatus("Svi statusi")}>Prikaži sve</Button>
-      </div>
-    </>
   );
 }
 const demoClients: C[] = [];
@@ -2136,19 +1901,19 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
         <div className="toolbar">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Ime, email, telefon ili grad..."
             />
           </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Svi statusi</option>
             <option>Aktivan</option>
             <option>VIP</option>
             <option>Na čekanju</option>
             <option>Neaktivan</option>
-          </select>
+          </CustomSelect>
           <Button
             className={more ? "filter-active" : ""}
             onClick={() => setMore((x) => !x)}
@@ -2161,15 +1926,15 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
           <div className="advanced-filters">
             <label>
               Grad
-              <select value={city} onChange={(e) => setCity(e.target.value)}>
+              <CustomSelect value={city} onChange={(e) => setCity(e.target.value)}>
                 <option>Svi gradovi</option>
                 {[...new Set(all.map((c) => c.city))].map((x) => (
                   <option key={x}>{x}</option>
                 ))}
-              </select>
+              </CustomSelect>
             </label>
             <label>
-              <input
+              <CustomInput
                 type="checkbox"
                 checked={sortValue}
                 onChange={(e) => setSortValue(e.target.checked)}
@@ -2342,7 +2107,7 @@ function ClientForm({
         <form onSubmit={submit}>
           <label>
             Ime i prezime *
-            <input
+            <CustomInput
               required
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
@@ -2352,7 +2117,7 @@ function ClientForm({
           <div className="add-form-grid">
             <label>
               Email *
-              <input
+              <CustomInput
                 required
                 type="email"
                 value={form.email}
@@ -2362,7 +2127,7 @@ function ClientForm({
             </label>
             <label>
               Telefon *
-              <input
+              <CustomInput
                 required
                 type="tel"
                 inputMode="tel"
@@ -2377,7 +2142,7 @@ function ClientForm({
             </label>
             <label>
               Grad *
-              <select
+              <CustomSelect
                 value={form.city}
                 onChange={(e) => set("city", e.target.value)}
               >
@@ -2386,11 +2151,11 @@ function ClientForm({
                 <option>Niš</option>
                 <option>Kragujevac</option>
                 <option>Subotica</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Status
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
@@ -2398,7 +2163,7 @@ function ClientForm({
                 <option>VIP</option>
                 <option>Na čekanju</option>
                 <option>Neaktivan</option>
-              </select>
+              </CustomSelect>
             </label>
           </div>
           <label>
@@ -2505,14 +2270,14 @@ function ClientPanel({
             <div className="client-edit">
               <label>
                 Ime i prezime
-                <input
+                <CustomInput
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
                 />
               </label>
               <label>
                 Email
-                <input
+                <CustomInput
                   type="email"
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
@@ -2520,7 +2285,7 @@ function ClientPanel({
               </label>
               <label>
                 Telefon
-                <input
+                <CustomInput
                   value={form.phone}
                   onChange={(e) =>
                     set("phone", formatSerbianPhone(e.target.value))
@@ -2529,14 +2294,14 @@ function ClientPanel({
               </label>
               <label>
                 Grad
-                <input
+                <CustomInput
                   value={form.city}
                   onChange={(e) => set("city", e.target.value)}
                 />
               </label>
               <label>
                 Status
-                <select
+                <CustomSelect
                   value={form.status}
                   onChange={(e) => set("status", e.target.value)}
                 >
@@ -2544,7 +2309,7 @@ function ClientPanel({
                   <option>VIP</option>
                   <option>Na čekanju</option>
                   <option>Neaktivan</option>
-                </select>
+                </CustomSelect>
               </label>
               {error && <div className="form-error">{error}</div>}
               <div className="modal-actions">
@@ -2753,20 +2518,20 @@ function Services() {
         <div className="toolbar">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Vozilo, tablice, tip ili radionica..."
             />
           </div>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Svi statusi</option>
             <option>Planirano</option>
             <option>Uskoro</option>
             <option>U toku</option>
             <option>Završeno</option>
             <option>Otkazano</option>
-          </select>
+          </CustomSelect>
           <Button
             className={more ? "filter-active" : ""}
             onClick={() => setMore((x) => !x)}
@@ -2779,7 +2544,7 @@ function Services() {
           <div className="advanced-filters">
             <label>
               Tip
-              <select value={type} onChange={(e) => setType(e.target.value)}>
+              <CustomSelect value={type} onChange={(e) => setType(e.target.value)}>
                 <option>Svi tipovi</option>
                 <option>Redovan servis</option>
                 <option>Veliki servis</option>
@@ -2787,10 +2552,10 @@ function Services() {
                 <option>Tehnički pregled</option>
                 <option>Pneumatici</option>
                 <option>Popravka</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
-              <input
+              <CustomInput
                 type="checkbox"
                 checked={sortCost}
                 onChange={(e) => setSortCost(e.target.checked)}
@@ -2964,7 +2729,7 @@ function ServiceForm({
         <form onSubmit={submit}>
           <label>
             Vozilo *
-            <select
+            <CustomSelect
               value={vehiclePlate}
               onChange={(e) => setVehiclePlate(e.target.value)}
             >
@@ -2974,12 +2739,12 @@ function ServiceForm({
                   {v.name} • {v.plate}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </label>
           <div className="add-form-grid">
             <label>
               Tip *
-              <select
+              <CustomSelect
                 value={form.type}
                 onChange={(e) => set("type", e.target.value)}
               >
@@ -2989,11 +2754,11 @@ function ServiceForm({
                 <option>Tehnički pregled</option>
                 <option>Pneumatici</option>
                 <option>Popravka</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Datum *
-              <input
+              <CustomDatePicker
                 required
                 type="date"
                 value={form.dueDate}
@@ -3002,7 +2767,7 @@ function ServiceForm({
             </label>
             <label>
               Kilometraža
-              <input
+              <CustomInput
                 type="number"
                 min="0"
                 value={form.mileage}
@@ -3011,7 +2776,7 @@ function ServiceForm({
             </label>
             <label>
               Procena troška (RSD)
-              <input
+              <CustomInput
                 type="number"
                 min="0"
                 step="100"
@@ -3021,7 +2786,7 @@ function ServiceForm({
             </label>
             <label>
               Radionica
-              <input
+              <CustomInput
                 value={form.workshop}
                 onChange={(e) => set("workshop", e.target.value)}
                 placeholder="Auto Centar Beograd"
@@ -3029,7 +2794,7 @@ function ServiceForm({
             </label>
             <label>
               Status
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
@@ -3037,7 +2802,7 @@ function ServiceForm({
                 <option>Uskoro</option>
                 <option>U toku</option>
                 <option>Završeno</option>
-              </select>
+              </CustomSelect>
             </label>
           </div>
           <label>
@@ -3143,7 +2908,7 @@ function ServicePanel({
         <div className="service-edit">
           <label>
             Status
-            <select
+            <CustomSelect
               value={form.status}
               onChange={(e) => set("status", e.target.value)}
             >
@@ -3152,11 +2917,11 @@ function ServicePanel({
               <option>U toku</option>
               <option>Završeno</option>
               <option>Otkazano</option>
-            </select>
+            </CustomSelect>
           </label>
           <label>
             Trošak (RSD)
-            <input
+            <CustomInput
               type="number"
               min="0"
               value={form.cost}
@@ -3165,7 +2930,7 @@ function ServicePanel({
           </label>
           <label>
             Datum
-            <input
+            <CustomDatePicker
               type="date"
               value={form.dueDate}
               onChange={(e) => set("dueDate", e.target.value)}
@@ -3173,7 +2938,7 @@ function ServicePanel({
           </label>
           <label>
             Kilometraža
-            <input
+            <CustomInput
               type="number"
               min="0"
               value={form.mileage}
@@ -3182,7 +2947,7 @@ function ServicePanel({
           </label>
           <label className="full">
             Radionica
-            <input
+            <CustomInput
               value={form.workshop}
               onChange={(e) => set("workshop", e.target.value)}
             />
@@ -3407,24 +3172,24 @@ function Finance() {
         <div className="finance-filters">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Referenca, opis ili kategorija..."
             />
           </div>
-          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+          <CustomSelect value={kind} onChange={(e) => setKind(e.target.value)}>
             <option>Sve transakcije</option>
             <option>Prihod</option>
             <option>Rashod</option>
-          </select>
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          </CustomSelect>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Svi statusi</option>
             <option>Plaćeno</option>
             <option>Na čekanju</option>
             <option>Stornirano</option>
-          </select>
-          <select
+          </CustomSelect>
+          <CustomSelect
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           >
@@ -3432,7 +3197,7 @@ function Finance() {
             <option>Beograd</option>
             <option>Novi Sad</option>
             <option>Niš</option>
-          </select>
+          </CustomSelect>
           <Button onClick={reset}>Očisti</Button>
         </div>
         <div className="active-filter-note">
@@ -3570,7 +3335,7 @@ function TransactionForm({
         <form onSubmit={submit}>
           <label>
             Opis *
-            <input
+            <CustomInput
               required
               value={form.description}
               onChange={(e) => set("description", e.target.value)}
@@ -3579,17 +3344,17 @@ function TransactionForm({
           <div className="add-form-grid">
             <label>
               Vrsta
-              <select
+              <CustomSelect
                 value={form.kind}
                 onChange={(e) => set("kind", e.target.value)}
               >
                 <option>Prihod</option>
                 <option>Rashod</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Kategorija
-              <select
+              <CustomSelect
                 value={form.category}
                 onChange={(e) => set("category", e.target.value)}
               >
@@ -3599,11 +3364,11 @@ function TransactionForm({
                 <option>Registracija</option>
                 <option>Osiguranje</option>
                 <option>Ostalo</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Iznos (RSD) *
-              <input
+              <CustomInput
                 required
                 type="number"
                 min="1"
@@ -3613,7 +3378,7 @@ function TransactionForm({
             </label>
             <label>
               Datum
-              <input
+              <CustomDatePicker
                 type="date"
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
@@ -3621,35 +3386,35 @@ function TransactionForm({
             </label>
             <label>
               Lokacija
-              <select
+              <CustomSelect
                 value={form.location}
                 onChange={(e) => set("location", e.target.value)}
               >
                 <option>Beograd</option>
                 <option>Novi Sad</option>
                 <option>Niš</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Plaćanje
-              <select
+              <CustomSelect
                 value={form.paymentMethod}
                 onChange={(e) => set("paymentMethod", e.target.value)}
               >
                 <option>Kartica</option>
                 <option>Gotovina</option>
                 <option>Prenos</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Status
-              <select
+              <CustomSelect
                 value={form.status}
                 onChange={(e) => set("status", e.target.value)}
               >
                 <option>Plaćeno</option>
                 <option>Na čekanju</option>
-              </select>
+              </CustomSelect>
             </label>
           </div>
           <label>
@@ -3749,11 +3514,11 @@ function TransactionPanel({
         </Button>
         <label className="status-control">
           Promeni status
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
             <option>Plaćeno</option>
             <option>Na čekanju</option>
             <option>Stornirano</option>
-          </select>
+          </CustomSelect>
         </label>
         <Button
           variant="primary"
@@ -3840,13 +3605,13 @@ function Documents() {
         <div className="finance-filters">
           <div className="table-search">
             <SearchIcon aria-hidden="true" />
-            <input
+            <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Naziv, povezani zapis ili autor..."
             />
           </div>
-          <select value={folder} onChange={(e) => setFolder(e.target.value)}>
+          <CustomSelect value={folder} onChange={(e) => setFolder(e.target.value)}>
             <option>Sve fascikle</option>
             <option>Vozila</option>
             <option>Klijenti</option>
@@ -3854,7 +3619,7 @@ function Documents() {
             <option>Registracije</option>
             <option>Osiguranja</option>
             <option>Ostalo</option>
-          </select>
+          </CustomSelect>
           <Button
             onClick={() => {
               setQ("");
@@ -3994,7 +3759,7 @@ function DocumentUpload({
         <form onSubmit={submit}>
           <label className="upload-zone">
             Izaberite fajl do 10 MB
-            <input
+            <CustomInput
               required
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
@@ -4004,7 +3769,7 @@ function DocumentUpload({
           <div className="add-form-grid">
             <label>
               Fascikla
-              <select
+              <CustomSelect
                 value={folder}
                 onChange={(e) => setFolder(e.target.value)}
               >
@@ -4014,11 +3779,11 @@ function DocumentUpload({
                 <option>Registracije</option>
                 <option>Osiguranja</option>
                 <option>Ostalo</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Povezano sa
-              <input
+              <CustomInput
                 value={linkedTo}
                 onChange={(e) => setLinkedTo(e.target.value)}
                 placeholder="Vozilo, klijent ili rezervacija"
@@ -4026,7 +3791,7 @@ function DocumentUpload({
             </label>
             <label>
               Važi do
-              <input
+              <CustomDatePicker
                 type="date"
                 value={expiresAt}
                 onChange={(e) => setExpiresAt(e.target.value)}
@@ -4115,14 +3880,14 @@ function DocumentPanel({
         <div className="client-edit">
           <label>
             Naziv
-            <input
+            <CustomInput
               value={form.name}
               onChange={(e) => setForm((x) => ({ ...x, name: e.target.value }))}
             />
           </label>
           <label>
             Fascikla
-            <select
+            <CustomSelect
               value={form.folder}
               onChange={(e) =>
                 setForm((x) => ({ ...x, folder: e.target.value }))
@@ -4134,11 +3899,11 @@ function DocumentPanel({
               <option>Registracije</option>
               <option>Osiguranja</option>
               <option>Ostalo</option>
-            </select>
+            </CustomSelect>
           </label>
           <label className="full">
             Povezano sa
-            <input
+            <CustomInput
               value={form.linkedTo}
               onChange={(e) =>
                 setForm((x) => ({ ...x, linkedTo: e.target.value }))
@@ -4147,7 +3912,7 @@ function DocumentPanel({
           </label>
           <label>
             Važi do
-            <input
+            <CustomDatePicker
               type="date"
               value={form.expiresAt || ""}
               onChange={(e) =>
@@ -4234,13 +3999,13 @@ function Reports() {
           </small>
         </div>
         <div className="report-actions">
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
+          <CustomSelect value={period} onChange={(e) => setPeriod(e.target.value)}>
             <option>Avgust 2026</option>
             <option>Jul 2026</option>
             <option>Q3 2026</option>
             <option>2026. godina</option>
-          </select>
-          <select
+          </CustomSelect>
+          <CustomSelect
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           >
@@ -4248,7 +4013,7 @@ function Reports() {
             <option>Beograd</option>
             <option>Novi Sad</option>
             <option>Niš</option>
-          </select>
+          </CustomSelect>
           <Button variant="outline" onClick={exportCsv}>
             <DownloadIcon className="button-icon" aria-hidden="true" />
             Excel / CSV
@@ -4286,10 +4051,10 @@ function Reports() {
               <h2>Iskorišćenost flote</h2>
               <p>Kliknite na kategoriju za detalje</p>
             </div>
-            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <CustomSelect value={sort} onChange={(e) => setSort(e.target.value)}>
               <option>Prihod</option>
               <option>Iskorišćenost</option>
-            </select>
+            </CustomSelect>
           </div>
           {utilization.map((x) => (
             <Button
@@ -4517,19 +4282,19 @@ function Users() {
           <div className="finance-filters">
             <div className="table-search">
               <SearchIcon aria-hidden="true" />
-              <input
+              <CustomInput
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Ime, email ili poslovnica..."
               />
             </div>
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+            <CustomSelect value={role} onChange={(e) => setRole(e.target.value)}>
               <option>Sve uloge</option>
               <option>Administrator</option>
               <option>Menadžer</option>
               <option>Agent</option>
               <option>Računovođa</option>
-            </select>
+            </CustomSelect>
             <Button
               onClick={() => {
                 setQ("");
@@ -4716,7 +4481,7 @@ function InviteUser({
         <form onSubmit={submit}>
           <label>
             Ime i prezime *
-            <input
+            <CustomInput
               required
               value={form.name}
               onChange={(e) => setForm((x) => ({ ...x, name: e.target.value }))}
@@ -4724,7 +4489,7 @@ function InviteUser({
           </label>
           <label>
             Email *
-            <input
+            <CustomInput
               required
               type="email"
               value={form.email}
@@ -4736,7 +4501,7 @@ function InviteUser({
           <div className="add-form-grid">
             <label>
               Uloga
-              <select
+              <CustomSelect
                 value={form.role}
                 onChange={(e) =>
                   setForm((x) => ({ ...x, role: e.target.value }))
@@ -4746,11 +4511,11 @@ function InviteUser({
                 <option>Menadžer</option>
                 <option>Agent</option>
                 <option>Računovođa</option>
-              </select>
+              </CustomSelect>
             </label>
             <label>
               Poslovnica
-              <select
+              <CustomSelect
                 value={form.branch}
                 onChange={(e) =>
                   setForm((x) => ({ ...x, branch: e.target.value }))
@@ -4760,7 +4525,7 @@ function InviteUser({
                 <option>Beograd</option>
                 <option>Novi Sad</option>
                 <option>Niš</option>
-              </select>
+              </CustomSelect>
             </label>
           </div>
           {error && <div className="form-error">{error}</div>}
@@ -4846,14 +4611,14 @@ function UserPanel({
         <div className="client-edit">
           <label>
             Ime
-            <input
+            <CustomInput
               value={form.name}
               onChange={(e) => setForm((x) => ({ ...x, name: e.target.value }))}
             />
           </label>
           <label>
             Email
-            <input
+            <CustomInput
               value={form.email}
               onChange={(e) =>
                 setForm((x) => ({ ...x, email: e.target.value }))
@@ -4862,7 +4627,7 @@ function UserPanel({
           </label>
           <label>
             Uloga
-            <select
+            <CustomSelect
               value={form.role}
               onChange={(e) => setForm((x) => ({ ...x, role: e.target.value }))}
             >
@@ -4870,11 +4635,11 @@ function UserPanel({
               <option>Menadžer</option>
               <option>Agent</option>
               <option>Računovođa</option>
-            </select>
+            </CustomSelect>
           </label>
           <label>
             Poslovnica
-            <select
+            <CustomSelect
               value={form.branch}
               onChange={(e) =>
                 setForm((x) => ({ ...x, branch: e.target.value }))
@@ -4884,11 +4649,11 @@ function UserPanel({
               <option>Beograd</option>
               <option>Novi Sad</option>
               <option>Niš</option>
-            </select>
+            </CustomSelect>
           </label>
           <label>
             Status
-            <select
+            <CustomSelect
               value={form.status}
               onChange={(e) =>
                 setForm((x) => ({ ...x, status: e.target.value }))
@@ -4897,14 +4662,14 @@ function UserPanel({
               <option>Aktivan</option>
               <option>Pozvan</option>
               <option>Suspendo­van</option>
-            </select>
+            </CustomSelect>
           </label>
         </div>
         <h3 className="permission-title">Dozvole po modulima</h3>
         <div className="permission-list">
           {modules.map((m) => (
             <label key={m}>
-              <input
+              <CustomInput
                 type="checkbox"
                 aria-label={`Dozvola za modul ${m}`}
                 checked={form.permissions.includes(m)}
@@ -4964,31 +4729,31 @@ function Settings() {
           <div className="form-grid">
             <label>
               Naziv kompanije
-              <input placeholder="Naziv vaše rent-a-car kompanije" />
+              <CustomInput placeholder="Naziv vaše rent-a-car kompanije" />
             </label>
             <label>
               PIB
-              <input placeholder="PIB" />
+              <CustomInput placeholder="PIB" />
             </label>
             <label>
               Matični broj
-              <input placeholder="Matični broj" />
+              <CustomInput placeholder="Matični broj" />
             </label>
             <label>
               Telefon
-              <input placeholder="Telefon" />
+              <CustomInput placeholder="Telefon" />
             </label>
             <label className="full">
               Adresa
-              <input placeholder="Adresa sedišta" />
+              <CustomInput placeholder="Adresa sedišta" />
             </label>
             <label>
               Email
-              <input placeholder="Email kompanije" />
+              <CustomInput placeholder="Email kompanije" />
             </label>
             <label>
               Web sajt
-              <input placeholder="Web sajt" />
+              <CustomInput placeholder="Web sajt" />
             </label>
           </div>
           <div className="form-actions">
@@ -5038,15 +4803,15 @@ function Login({ on }: { on: () => void }) {
           <p>Prijavite se na vaš DriveNode nalog.</p>
           <label>
             Email adresa
-            <input type="email" defaultValue="demo@dnfm.rs" />
+            <CustomInput type="email" defaultValue="demo@dnfm.rs" />
           </label>
           <label>
             Lozinka
-            <input type="password" defaultValue="drivenode" />
+            <CustomInput type="password" defaultValue="drivenode" />
           </label>
           <div className="remember">
             <label>
-              <input type="checkbox" defaultChecked /> Zapamti me
+              <CustomInput type="checkbox" defaultChecked /> Zapamti me
             </label>
             <Button type="button" className="link-button">
               Zaboravili ste lozinku?
@@ -5065,6 +4830,7 @@ function App() {
   const [logged, setLogged] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [page, setPage] = useState("Pregled");
+  const currentUser = defaultCurrentUser;
   useEffect(() => {
     try {
       setLogged(localStorage.getItem("dnfm_logged_in") === "1");
@@ -5222,7 +4988,7 @@ function App() {
           overrides={bookingOverrides}
         />
       ) : page === "Kalendar" ? (
-        <Calendar
+        <BookingCalendar
           open={openReservation}
           newReservation={createBooking}
           refresh={bookingRefresh}
@@ -5249,6 +5015,7 @@ function App() {
           newReservation={createBooking}
           addVehicle={addVehicle}
           newClient={addClient}
+          userName={currentUser.name}
         />
       );
   return (
@@ -5276,17 +5043,20 @@ function App() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <Button onClick={() => go("Podešavanja")}>
+          <Button
+            className={page === "Podešavanja" ? "active" : ""}
+            onClick={() => go("Podešavanja")}
+          >
             <span className="nav-icon">
               <SettingsIcon aria-hidden="true" />
             </span>
             Podešavanja
           </Button>
           <div className="profile">
-            <span>AD</span>
+            <span>{currentUser.initials}</span>
             <div>
-              <b>Administrator</b>
-              <small>Administrator</small>
+              <b>{currentUser.name}</b>
+              <small>{currentUser.role}</small>
             </div>
             <Button className="profile-menu" onClick={logout} aria-label="Odjavi se">
               <MoreIcon aria-hidden="true" />

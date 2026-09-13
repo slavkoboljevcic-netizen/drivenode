@@ -30,6 +30,16 @@ const eslintConfig = defineConfig([
       },
     },
     rules: {
+      "jsx-a11y/label-has-associated-control": [
+        "error",
+        {
+          controlComponents: [
+            "CustomInput",
+            "CustomSelect",
+            "CustomDatePicker",
+          ],
+        },
+      ],
       "react-hooks/set-state-in-effect": "off",
     },
   },
