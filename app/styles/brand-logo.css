@@ -1,0 +1,12 @@
+.brand-mark {
+  background-color: #2a2a2a;
+  background-image: url("/drivenode-logo.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 200%;
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 10px 24px #00000055;
+  color: transparent;
+  font-size: 0;
+  overflow: hidden;
+}

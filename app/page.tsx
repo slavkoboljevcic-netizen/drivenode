@@ -15,6 +15,7 @@ import "./styles/reports.css";
 import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
+import "./styles/brand-logo.css";
 import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
