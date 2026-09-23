@@ -315,6 +315,7 @@ function RowMenu({
   onDelete: () => void;
 }) {
   const [show, setShow] = useState(false);
+  const linked = label.startsWith("AUTO-SER-");
   return (
     <div className="row-menu">
       <Button
@@ -343,10 +344,16 @@ function RowMenu({
             onClick={(e) => {
               e.stopPropagation();
               setShow(false);
+              if (linked) {
+                alert(
+                  "Automatski trošak se menja ili briše u odeljku Servisi i registracije.",
+                );
+                return;
+              }
               onDelete();
             }}
           >
-            Obriši
+            {linked ? "Menja se u servisima" : "Obriši"}
           </Button>
         </div>
       )}
@@ -3545,9 +3552,11 @@ function TransactionPanel({
   close: () => void;
   saved: (r: string, s: string) => void;
 }) {
+  const linked = item.reference.startsWith("AUTO-");
   const [status, setStatus] = useState(item.status);
   const [saving, setSaving] = useState(false);
   const save = async () => {
+    if (linked) return;
     setSaving(true);
     const r = await fetch("/api/transactions", {
       method: "PATCH",
@@ -3611,9 +3620,19 @@ function TransactionPanel({
             TXT <DownloadIcon aria-hidden="true" />
           </span>
         </Button>
+        {linked && (
+          <div className="active-filter-note">
+            Automatski povezano sa servisnim zapisom. Izmene izvršite u
+            odeljku Servisi i registracije.
+          </div>
+        )}
         <label className="status-control">
           Promeni status
-          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            disabled={linked}
+          >
             <option>Plaćeno</option>
             <option>Na čekanju</option>
             <option>Stornirano</option>
@@ -3623,9 +3642,13 @@ function TransactionPanel({
           variant="primary"
           className="drawer-action"
           onClick={save}
-          disabled={saving}
+          disabled={saving || linked}
         >
-          {saving ? "Čuvanje…" : "Sačuvaj status"}
+          {linked
+            ? "Uređuje se u servisima"
+            : saving
+              ? "Čuvanje…"
+              : "Sačuvaj status"}
         </Button>
     </DrawerFrame>
   );
