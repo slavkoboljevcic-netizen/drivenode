@@ -32,6 +32,7 @@ const databaseSchema = [
     vin TEXT DEFAULT '' NOT NULL,
     fuel TEXT DEFAULT '' NOT NULL,
     transmission TEXT DEFAULT '' NOT NULL,
+    is_registered INTEGER DEFAULT 1 NOT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles (plate)`,

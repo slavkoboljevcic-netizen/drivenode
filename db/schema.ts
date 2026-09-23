@@ -20,6 +20,7 @@ export const vehicles = sqliteTable(
     vin: text("vin").notNull().default(""),
     fuel: text("fuel").notNull().default(""),
     transmission: text("transmission").notNull().default(""),
+    registered: integer("is_registered", { mode: "boolean" }).notNull().default(true),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),

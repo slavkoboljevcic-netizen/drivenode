@@ -3,6 +3,9 @@ import { getDb } from "../../../db";
 import { vehicles } from "../../../db/schema";
 
 const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
+const asRegistered = (value: unknown) => !(
+  value === false || value === 0 || value === "0" || value === "false" || value === "Nije registrovano"
+);
 
 export async function GET() {
   try {
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
     const vin = clean(body.vin).toUpperCase();
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
+    const registered = asRegistered(body.registered);
     const year = Number(body.year);
     const km = Number(body.km);
     if (!plate) {
@@ -35,7 +39,7 @@ export async function POST(request: Request) {
     const db = getDb();
     const duplicate = await db.select({ id: vehicles.id }).from(vehicles).where(sql`lower(${vehicles.plate}) = lower(${plate})`).limit(1);
     if (duplicate.length) return Response.json({ error: "Vozilo sa ovim registarskim tablicama već postoji." }, { status: 409 });
-    const [vehicle] = await db.insert(vehicles).values({ name, plate, location, status, service, vin, fuel, transmission, year, km: Math.round(km) }).returning();
+    const [vehicle] = await db.insert(vehicles).values({ name, plate, location, status, service, vin, fuel, transmission, registered, year, km: Math.round(km) }).returning();
     return Response.json({ vehicle }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Greška pri dodavanju vozila.";
@@ -56,6 +60,7 @@ export async function PATCH(request: Request) {
     const vin = clean(body.vin).toUpperCase();
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
+    const registered = asRegistered(body.registered);
     const year = Number(body.year);
     const km = Number(body.km);
     if (!originalPlate || !name || !plate || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
@@ -63,7 +68,7 @@ export async function PATCH(request: Request) {
     }
     const db = getDb();
     const existing = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.plate, originalPlate)).limit(1);
-    const values = { name, plate, year, km: Math.round(km), location, status, service, vin, fuel, transmission };
+    const values = { name, plate, year, km: Math.round(km), location, status, service, vin, fuel, transmission, registered };
     const [vehicle] = existing.length
       ? await db.update(vehicles).set(values).where(eq(vehicles.plate, originalPlate)).returning()
       : await db.insert(vehicles).values(values).returning();

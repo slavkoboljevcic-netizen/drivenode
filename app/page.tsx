@@ -62,6 +62,7 @@ type V = {
   vin: string;
   fuel: string;
   transmission: string;
+  registered: boolean;
 };
 type B = {
   id: string;
@@ -682,6 +683,7 @@ function AddVehicleModal({
     vin: "",
     fuel: "",
     transmission: "",
+    registered: true,
   });
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -812,6 +814,21 @@ function AddVehicleModal({
               </CustomSelect>
             </label>
             <label>
+              Registracioni status
+              <CustomSelect
+                value={form.registered ? "Registrovano" : "Nije registrovano"}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    registered: e.target.value === "Registrovano",
+                  }))
+                }
+              >
+                <option>Registrovano</option>
+                <option>Nije registrovano</option>
+              </CustomSelect>
+            </label>
+            <label>
               VIN
               <CustomInput
                 maxLength={17}
@@ -916,7 +933,11 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           <section className="panel info-card">
             <h2>Osnovni podaci</h2>
             {[
-              ["Registracija", current.plate],
+              ["Registarske tablice", current.plate],
+              [
+                "Status registracije",
+                current.registered === false ? "Nije registrovano" : "Registrovano",
+              ],
               ["VIN", current.vin || "Nije unet"],
               ["Kilometraža", current.km],
               ["Gorivo", current.fuel || "Nije uneto"],
@@ -1078,6 +1099,7 @@ function EditVehicleModal({
 }) {
   const [form, setForm] = useState({
     ...vehicle,
+    registered: vehicle.registered !== false,
     km: vehicle.km.replace(/[^0-9]/g, ""),
   });
   const [error, setError] = useState("");
@@ -1187,6 +1209,21 @@ function EditVehicleModal({
                 <option>Iznajmljeno</option>
                 <option>Rezervisano</option>
                 <option>Na servisu</option>
+              </CustomSelect>
+            </label>
+            <label>
+              Registracioni status
+              <CustomSelect
+                value={form.registered ? "Registrovano" : "Nije registrovano"}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    registered: e.target.value === "Registrovano",
+                  }))
+                }
+              >
+                <option>Registrovano</option>
+                <option>Nije registrovano</option>
               </CustomSelect>
             </label>
             <label>
