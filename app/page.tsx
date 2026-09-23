@@ -64,6 +64,10 @@ type V = {
   transmission: string;
   registered: boolean;
 };
+const displayPlate = (plate: string, registered?: boolean) =>
+  registered === false || plate.startsWith("DNFM-NEREG-")
+    ? "Nema tablica"
+    : plate;
 type B = {
   id: string;
   client: string;
@@ -616,7 +620,7 @@ function Vehicles({
                       <div>
                         <strong>{v.name}</strong>
                         <small>
-                          {v.year} • {v.plate}
+                          {v.year} • {displayPlate(v.plate, v.registered)}
                         </small>
                       </div>
                     </div>
@@ -693,11 +697,12 @@ function AddVehicleModal({
     e.preventDefault();
     setError("");
     const plate = form.plate.trim();
-    if (!plate) {
+    if (form.registered && !plate) {
       setError("Unesite registarsku oznaku. Prihvaćeni su svi formati tablica.");
       return;
     }
     if (
+      plate &&
       existing.some(
         (v) =>
           v.plate.trim().toLocaleLowerCase("sr") ===
@@ -754,16 +759,22 @@ function AddVehicleModal({
           </label>
           <div className="add-form-grid">
             <label>
-              Registarske tablice *
+              {form.registered
+                ? "Registarske tablice *"
+                : "Registarske tablice (opciono)"}
               <CustomInput
-                required
+                required={form.registered}
                 type="text"
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
                 value={form.plate}
                 onChange={(e) => set("plate", e.target.value)}
-                placeholder="Domaće, strane, probne ili druge tablice"
+                placeholder={
+                  form.registered
+                    ? "Domaće, strane, probne ili druge tablice"
+                    : "Ostavite prazno ako vozilo nema tablice"
+                }
               />
             </label>
             <label>
@@ -910,7 +921,7 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           <Badge s={current.status} />
           <h1>{current.name}</h1>
           <p>
-            {current.year} • {current.plate}
+            {current.year} • {displayPlate(current.plate, current.registered)}
           </p>
         </div>
         <Button variant="outline" onClick={() => setEdit(true)}>
@@ -933,7 +944,10 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           <section className="panel info-card">
             <h2>Osnovni podaci</h2>
             {[
-              ["Registarske tablice", current.plate],
+              [
+                "Registarske tablice",
+                displayPlate(current.plate, current.registered),
+              ],
               [
                 "Status registracije",
                 current.registered === false ? "Nije registrovano" : "Registrovano",
@@ -1020,7 +1034,7 @@ function VehicleDocuments({ v }: { v: V }) {
         <div>
           <h2>Dokumentacija</h2>
           <p>
-            {v.name} • {v.plate}
+            {v.name} • {displayPlate(v.plate, v.registered)}
           </p>
         </div>
         <Button variant="outline" onClick={() => setUpload(true)}>
@@ -1100,6 +1114,7 @@ function EditVehicleModal({
   const [form, setForm] = useState({
     ...vehicle,
     registered: vehicle.registered !== false,
+    plate: vehicle.registered === false ? "" : vehicle.plate,
     km: vehicle.km.replace(/[^0-9]/g, ""),
   });
   const [error, setError] = useState("");
@@ -1110,7 +1125,7 @@ function EditVehicleModal({
     e.preventDefault();
     setError("");
     const plate = form.plate.trim();
-    if (!plate) {
+    if (form.registered && !plate) {
       setError("Unesite registarsku oznaku. Prihvaćeni su svi formati tablica.");
       return;
     }
@@ -1157,15 +1172,22 @@ function EditVehicleModal({
           </label>
           <div className="add-form-grid">
             <label>
-              Tablice
+              {form.registered
+                ? "Registarske tablice *"
+                : "Registarske tablice (opciono)"}
               <CustomInput
-                required
+                required={form.registered}
                 type="text"
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
                 value={form.plate}
                 onChange={(e) => set("plate", e.target.value)}
+                placeholder={
+                  form.registered
+                    ? "Domaće, strane, probne ili druge tablice"
+                    : "Ostavite prazno ako vozilo nema tablice"
+                }
               />
             </label>
             <label>
@@ -2649,7 +2671,7 @@ function Services() {
                   <td>
                     <strong>{s.vehicle}</strong>
                     <small>
-                      {s.plate} • {s.mileage.toLocaleString("sr-RS")} km
+                      {displayPlate(s.plate)} • {s.mileage.toLocaleString("sr-RS")} km
                     </small>
                   </td>
                   <td>{s.type}</td>
@@ -2794,7 +2816,7 @@ function ServiceForm({
               <option value="">Izaberite vozilo</option>
               {vehicleOptions.map((v) => (
                 <option value={v.plate} key={v.plate}>
-                  {v.name} • {v.plate}
+                  {v.name} • {displayPlate(v.plate, v.registered)}
                 </option>
               ))}
             </CustomSelect>
@@ -2922,7 +2944,7 @@ function ServicePanel({
     const url = URL.createObjectURL(
       new Blob(
         [
-          `DriveNode Fleet Manager\nServisni nalog ${form.code}\nVozilo: ${form.vehicle} • ${form.plate}\nTip: ${form.type}\nDatum: ${form.dueDate}\nRadionica: ${form.workshop}\nTrošak: ${form.cost} RSD\nStatus: ${form.status}\nNapomena: ${form.notes}`,
+          `DriveNode Fleet Manager\nServisni nalog ${form.code}\nVozilo: ${form.vehicle} • ${displayPlate(form.plate)}\nTip: ${form.type}\nDatum: ${form.dueDate}\nRadionica: ${form.workshop}\nTrošak: ${form.cost} RSD\nStatus: ${form.status}\nNapomena: ${form.notes}`,
         ],
         { type: "text/plain;charset=utf-8" },
       ),
@@ -2944,7 +2966,7 @@ function ServicePanel({
         <div className="service-summary">
           <div>
             <small>Tablice</small>
-            <b>{form.plate}</b>
+            <b>{displayPlate(form.plate)}</b>
           </div>
           <div>
             <small>Tip</small>
@@ -4019,7 +4041,7 @@ function Reports() {
         .slice(0, 5)
         .map((v, i) => [
           v.name,
-          v.plate,
+          displayPlate(v.plate, v.registered),
           `${utilization[i][1]}%`,
           String(profits[i]),
         ]),
@@ -4158,7 +4180,7 @@ function Reports() {
                 setSelected({
                   title: v.name,
                   value: `${profits[i].toLocaleString("sr-RS")} RSD`,
-                  detail: `${v.plate} • ${v.location}. Vozilo ima ${utilization[i][1]}% iskorišćenosti i ${v.status.toLowerCase()} status.`,
+                  detail: `${displayPlate(v.plate, v.registered)} • ${v.location}. Vozilo ima ${utilization[i][1]}% iskorišćenosti i ${v.status.toLowerCase()} status.`,
                 })
               }
             >
@@ -4168,7 +4190,7 @@ function Reports() {
               </span>
               <div>
                 <strong>{v.name}</strong>
-                <small>{v.plate}</small>
+                <small>{displayPlate(v.plate, v.registered)}</small>
               </div>
               <em>{profits[i].toLocaleString("sr-RS")} RSD</em>
             </Button>

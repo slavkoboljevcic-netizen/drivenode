@@ -6,6 +6,7 @@ const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const asRegistered = (value: unknown) => !(
   value === false || value === 0 || value === "0" || value === "false" || value === "Nije registrovano"
 );
+const makeInternalPlate = () => `DNFM-NEREG-${crypto.randomUUID().toUpperCase()}`;
 
 export async function GET() {
   try {
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
     const name = clean(body.name);
-    const plate = clean(body.plate);
+    let plate = clean(body.plate);
     const location = clean(body.location);
     const status = clean(body.status) || "Dostupno";
     const service = clean(body.service) || "Nije zakazano";
@@ -28,9 +29,10 @@ export async function POST(request: Request) {
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
     const registered = asRegistered(body.registered);
+    if (!registered && !plate) plate = makeInternalPlate();
     const year = Number(body.year);
     const km = Number(body.km);
-    if (!plate) {
+    if (registered && !plate) {
       return Response.json({ error: "Unesite registarsku oznaku. Prihvaćeni su svi formati tablica." }, { status: 400 });
     }
     if (!name || !location || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
@@ -53,7 +55,7 @@ export async function PATCH(request: Request) {
     const body = await request.json() as Record<string, unknown>;
     const originalPlate = clean(body.originalPlate);
     const name = clean(body.name);
-    const plate = clean(body.plate);
+    let plate = clean(body.plate);
     const location = clean(body.location);
     const status = clean(body.status);
     const service = clean(body.service) || "Nije zakazano";
@@ -61,9 +63,10 @@ export async function PATCH(request: Request) {
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
     const registered = asRegistered(body.registered);
+    if (!registered && !plate) plate = originalPlate || makeInternalPlate();
     const year = Number(body.year);
     const km = Number(body.km);
-    if (!originalPlate || !name || !plate || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+    if (!originalPlate || !name || (registered && !plate) || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
       return Response.json({ error: "Popunite sva polja ispravnim podacima." }, { status: 400 });
     }
     const db = getDb();

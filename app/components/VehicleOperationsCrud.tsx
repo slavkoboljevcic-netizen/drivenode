@@ -7,7 +7,11 @@ import CustomInput from "./CustomInput";
 import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
-type Vehicle = { name: string; plate: string; km: string; location: string };
+type Vehicle = { name: string; plate: string; km: string; location: string; registered?: boolean };
+const displayPlate = (plate: string, registered?: boolean) =>
+  registered === false || plate.startsWith("DNFM-NEREG-")
+    ? "Nema tablica"
+    : plate;
 type Row = {
   id?: number;
   code?: string;
@@ -378,7 +382,7 @@ export default function VehicleOperationsCrud({
         <div>
           <h2>{tab}</h2>
           <p>
-            {v.name} • {v.plate}
+            {v.name} • {displayPlate(v.plate, v.registered)}
           </p>
         </div>
         <Button variant="outline" onClick={() => setAdding(true)}>
