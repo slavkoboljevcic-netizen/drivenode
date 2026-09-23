@@ -1307,14 +1307,15 @@ function Reservations({
   newReservation,
   refresh,
   overrides,
+  onDeleted,
 }: {
   open: (b: B) => void;
   newReservation: () => void;
   refresh: number;
   overrides: Record<string, string>;
+  onDeleted: () => void;
 }) {
   const [q, setQ] = useState("");
-  const { deleted, remove } = useSoftDelete("reservations");
   const [status, setStatus] = useState("Svi statusi");
   const [vehicle, setVehicle] = useState("Sva vozila");
   const [more, setMore] = useState(false);
@@ -1352,7 +1353,6 @@ function Reservations({
       .finally(() => setLoading(false));
   }, [refresh]);
   const all = [...added, ...bookings]
-    .filter((b) => !deleted.has(b.id))
     .filter((b, i, a) => a.findIndex((x) => x.id === b.id) === i)
     .map((b) => ({ ...b, status: overrides[b.id] || b.status }));
   const shown = all
@@ -1377,6 +1377,25 @@ function Reservations({
     setStatus("Svi statusi");
     setVehicle("Sva vozila");
     setSortValue(false);
+  };
+  const deleteReservation = async (booking: B) => {
+    if (!confirm(`Da li sigurno želite trajno da obrišete rezervaciju ${booking.id}?`))
+      return;
+    try {
+      const response = await fetch(
+        `/api/reservations?code=${encodeURIComponent(booking.id)}`,
+        { method: "DELETE" },
+      );
+      const data = await response.json();
+      if (!response.ok)
+        throw new Error(data.error || "Rezervacija nije obrisana.");
+      setAdded((current) => current.filter((item) => item.id !== booking.id));
+      onDeleted();
+    } catch (error) {
+      alert(
+        error instanceof Error ? error.message : "Rezervacija nije obrisana.",
+      );
+    }
   };
   const totalValue = all.reduce(
     (sum, b) => sum + Number(b.price.replace(/\D/g, "")),
@@ -1535,7 +1554,7 @@ function Reservations({
                       label={b.id}
                       onOpen={() => open(b)}
                       onDelete={() => {
-                        void remove(b.id, `rezervaciju `);
+                        void deleteReservation(b);
                       }}
                     />
                   </td>
@@ -5066,6 +5085,7 @@ function App() {
           newReservation={createBooking}
           refresh={bookingRefresh}
           overrides={bookingOverrides}
+          onDeleted={() => setBookingRefresh((x) => x + 1)}
         />
       ) : page === "Kalendar" ? (
         <BookingCalendar

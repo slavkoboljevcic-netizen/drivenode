@@ -29,8 +29,6 @@ type BookingCalendarProps = {
   overrides: Record<string, string>;
 };
 
-const demoBookings: CalendarBooking[] = [];
-const calendarToday = new Date(2026, 7, 24);
 const viewModes = ["Mesec", "Nedelja", "Dan"];
 const statuses = [
   "Svi statusi",
@@ -87,7 +85,7 @@ export default function BookingCalendar({
   overrides,
 }: BookingCalendarProps) {
   const [mode, setMode] = useState("Mesec");
-  const [cursor, setCursor] = useState(calendarToday);
+  const [cursor, setCursor] = useState(() => new Date());
   const [status, setStatus] = useState("Svi statusi");
   const [savedBookings, setSavedBookings] = useState<CalendarEvent[]>([]);
 
@@ -121,21 +119,13 @@ export default function BookingCalendar({
       .catch(() => {});
   }, [refresh]);
 
-  const demoEvents = demoBookings.map((booking, index) => ({
-    ...booking,
-    status: overrides[booking.id] || booking.status,
-    date: new Date(
-      2026,
-      7,
-      [24, 24, 24, 25, 26][index],
-      [9, 11, 13, 8, 10][index],
-    ),
-  }));
-  const events = [...savedBookings, ...demoEvents]
-    .filter((booking, index, all) =>
-      all.findIndex((item) => item.id === booking.id) === index,
-    )
+  const events = savedBookings
+    .map((booking) => ({
+      ...booking,
+      status: overrides[booking.id] || booking.status,
+    }))
     .filter((booking) => status === "Svi statusi" || booking.status === status);
+  const actualToday = new Date();
 
   const move = (direction: number) =>
     setCursor((date) => {
@@ -148,7 +138,7 @@ export default function BookingCalendar({
       }
       return nextDate;
     });
-  const goToday = () => setCursor(calendarToday);
+  const goToday = () => setCursor(new Date());
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const gridStart = new Date(monthStart);
   gridStart.setDate(1 - ((monthStart.getDay() + 6) % 7));
@@ -241,7 +231,7 @@ export default function BookingCalendar({
           <div className="calendar-grid">
             {monthDays.map((date) => (
               <div
-                className={`${sameDay(date, calendarToday) ? "today " : ""}${date.getMonth() !== cursor.getMonth() ? "outside" : ""}`}
+                className={`${sameDay(date, actualToday) ? "today " : ""}${date.getMonth() !== cursor.getMonth() ? "outside" : ""}`}
                 key={date.toISOString()}
                 role="button"
                 tabIndex={0}
@@ -265,7 +255,7 @@ export default function BookingCalendar({
           {weekDays.map((date) => (
             <div
               key={date.toISOString()}
-              className={sameDay(date, calendarToday) ? "today" : ""}
+              className={sameDay(date, actualToday) ? "today" : ""}
               role="button"
               tabIndex={0}
               onClick={() => {

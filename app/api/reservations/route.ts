@@ -1,13 +1,19 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
-import { reservations } from "../../../db/schema";
+import { deletedRecords, reservations } from "../../../db/schema";
 
 const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 
 export async function GET() {
   try {
-    const rows = await getDb().select().from(reservations).orderBy(desc(reservations.id));
-    return Response.json({ reservations: rows });
+    const db = getDb();
+    const rows = await db.select().from(reservations).orderBy(desc(reservations.id));
+    const hiddenRows = await db
+      .select({ code: deletedRecords.recordKey })
+      .from(deletedRecords)
+      .where(eq(deletedRecords.entity, "reservations"));
+    const hiddenCodes = new Set(hiddenRows.map((row) => row.code));
+    return Response.json({ reservations: rows.filter((row) => !hiddenCodes.has(row.code)) });
   } catch (error) {
     return Response.json({ error: error instanceof Error ? error.message : "Greška pri učitavanju rezervacija." }, { status: 500 });
   }
