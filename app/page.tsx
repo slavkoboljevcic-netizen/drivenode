@@ -19,6 +19,7 @@ import "./styles/brand-logo.css";
 import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
+import NotificationCenter from "./components/NotificationCenter";
 import VehicleOperationsCrud from "./components/VehicleOperationsCrud";
 import Button from "./components/Button";
 import CustomDatePicker from "./components/CustomDatePicker";
@@ -35,7 +36,6 @@ import {
   AddIcon,
   ArrowRightIcon,
   BackIcon,
-  BellIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronRightIcon,
@@ -5195,12 +5195,7 @@ function App() {
             go={go}
           />
           <div className="head-actions">
-            <Button
-              onClick={() => go("Servisi i registracije")}
-              aria-label="Otvori obaveštenja"
-            >
-              <BellIcon aria-hidden="true" />
-            </Button>
+            <NotificationCenter go={go} />
             <Button
               variant="primary"
               className="new-reservation-button"
