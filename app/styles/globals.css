@@ -1446,7 +1446,7 @@ tbody tr:hover {
   --muted: #71809c;
   --line: #e7ebf2;
   --blue: #3b71f3;
-  --sidebar: #000;
+  --sidebar: #fff;
   --sidebar-width: 280px;
 }
 body {
@@ -1819,9 +1819,9 @@ button:disabled,
 .sidebar {
   width: var(--sidebar-width);
   background: var(--sidebar);
-  border-right: 1px solid #1d2a42;
-  box-shadow: 16px 0 40px #0b132033;
-  color: #d9e0ee;
+  border-right: 1px solid var(--line);
+  box-shadow: 16px 0 40px #0b132008;
+  color: var(--ink);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -1851,7 +1851,7 @@ button:disabled,
 }
 .brand b {
   display: block;
-  color: #fff;
+  color: var(--ink);
   font-size: 17px;
   line-height: 1;
 }
@@ -1870,7 +1870,7 @@ button:disabled,
 .sidebar button {
   border: 1px solid transparent;
   background: transparent;
-  color: #95a3bd;
+  color: #52617a;
   font-size: 15px;
   font-weight: 500;
   text-align: left;
@@ -1890,20 +1890,18 @@ button:disabled,
     transform 0.16s ease;
 }
 .sidebar button.active {
-  background: #213967;
-  border-color: #4169c4;
-  box-shadow:
-    inset 0 0 0 1px var(--sidebar),
-    0 14px 32px #050b1580;
-  color: #fff;
+  background: #edf3ff;
+  border-color: #d8e5ff;
+  box-shadow: none;
+  color: var(--blue);
 }
 .sidebar button:hover {
-  background: #14233d;
-  color: #eef4ff;
+  background: #f5f7fb;
+  color: var(--ink);
   transform: translateX(2px);
 }
 .sidebar button.active:hover {
-  background: #263f72;
+  background: #e3edff;
 }
 .nav-icon {
   color: currentColor;
@@ -1927,7 +1925,7 @@ button:disabled,
   gap: 14px;
 }
 .profile {
-  border-top: 1px solid #22314d;
+  border-top: 1px solid var(--line);
   margin-top: 0;
   padding: 16px 8px 0;
   display: flex;
@@ -1952,7 +1950,7 @@ button:disabled,
 }
 .profile b {
   font-size: 14px;
-  color: #fff;
+  color: var(--ink);
 }
 .profile small {
   font-size: 13px;
@@ -1968,7 +1966,7 @@ button:disabled,
   background: transparent;
   border: 0;
   border-radius: 9px;
-  color: #9ca9c1;
+  color: #52617a;
   display: grid;
   height: 30px;
   justify-content: center;
@@ -1978,8 +1976,8 @@ button:disabled,
   width: 30px;
 }
 .profile .profile-menu:hover {
-  background: #14233d;
-  color: #fff;
+  background: #f5f7fb;
+  color: var(--ink);
   transform: none;
 }
 .content {
