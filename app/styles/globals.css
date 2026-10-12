@@ -1446,7 +1446,7 @@ tbody tr:hover {
   --muted: #71809c;
   --line: #e7ebf2;
   --blue: #3b71f3;
-  --sidebar: #08111f;
+  --sidebar: #000;
   --sidebar-width: 280px;
 }
 body {
@@ -1818,7 +1818,7 @@ button:disabled,
 }
 .sidebar {
   width: var(--sidebar-width);
-  background: #08111f;
+  background: var(--sidebar);
   border-right: 1px solid #1d2a42;
   box-shadow: 16px 0 40px #0b132033;
   color: #d9e0ee;
@@ -1893,7 +1893,7 @@ button:disabled,
   background: #213967;
   border-color: #4169c4;
   box-shadow:
-    inset 0 0 0 1px #08111f,
+    inset 0 0 0 1px var(--sidebar),
     0 14px 32px #050b1580;
   color: #fff;
 }
