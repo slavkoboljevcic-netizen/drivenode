@@ -8,14 +8,14 @@
 }
 .role-grid button {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--theme-surface, #fff);
   border-radius: 11px;
   padding: 18px;
   text-align: left;
   cursor: pointer;
 }
 .role-grid button:hover {
-  border-color: #8facf4;
+  border-color: var(--theme-accent-8facf4, #8facf4);
 }
 .role-grid span {
   display: grid;
@@ -23,8 +23,8 @@
   width: 38px;
   height: 38px;
   border-radius: 8px;
-  background: #edf3ff;
-  color: #3b71f3;
+  background: var(--theme-accent-edf3ff, #edf3ff);
+  color: var(--theme-accent-3b71f3, #3b71f3);
 }
 .role-grid b,
 .role-grid small,
@@ -35,13 +35,13 @@
   margin-top: 14px;
 }
 .role-grid small {
-  color: #7f8b9f;
+  color: var(--theme-muted, #7f8b9f);
   margin-top: 5px;
 }
 .role-grid em {
   font-style: normal;
   font-size: 12px;
-  color: #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
   margin-top: 14px;
 }
 .activity-log button {
@@ -51,13 +51,13 @@
   gap: 12px;
   border: 0;
   border-bottom: 1px solid var(--line);
-  background: #fff;
+  background: var(--theme-surface, #fff);
   padding: 13px;
   text-align: left;
   cursor: pointer;
 }
 .activity-log button:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .activity-log > button > span {
   width: 34px;
@@ -65,8 +65,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #edf3ff;
-  color: #3b71f3;
+  background: var(--theme-accent-edf3ff, #edf3ff);
+  color: var(--theme-accent-3b71f3, #3b71f3);
   font-size: 13px;
 }
 .activity-log div {
@@ -78,12 +78,12 @@
   font-size: 13px;
 }
 .activity-log small {
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   margin-top: 4px;
 }
 .activity-log em {
   font-size: 12px;
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
 }
 .permission-title {
   font-size: 15px;
@@ -109,7 +109,7 @@
   font-size: 13px;
 }
 .permission-list small {
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   margin-top: 3px;
 }
 @media (max-width: 850px) {

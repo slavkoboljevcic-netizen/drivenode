@@ -1,5 +1,5 @@
 .search-state {
-  color: #71809c;
+  color: var(--theme-muted, #71809c);
   font-size: 14px;
   padding: 14px;
 }

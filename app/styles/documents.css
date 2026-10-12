@@ -2,7 +2,7 @@
   flex: 1;
   border: 0;
   border-right: 1px solid var(--line);
-  background: #fff;
+  background: var(--theme-surface, #fff);
   text-align: left;
   padding-left: 20px;
   cursor: pointer;
@@ -11,20 +11,20 @@
   border: 0;
 }
 .doc-stats button:hover b {
-  color: #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
 }
 .folder.active {
-  border-color: #3b71f3;
-  background: #f5f8ff;
+  border-color: var(--theme-accent-3b71f3, #3b71f3);
+  background: var(--theme-accent-f5f8ff, #f5f8ff);
 }
 .upload-zone {
   display: grid !important;
   place-items: center;
   min-height: 130px;
-  border: 2px dashed #b7c6e5;
+  border: 2px dashed var(--theme-border, var(--theme-accent-b7c6e5, #b7c6e5));
   border-radius: 10px;
-  background: #f8faff;
-  color: #6f7f99;
+  background: var(--theme-accent-f8faff, #f8faff);
+  color: var(--theme-muted, #6f7f99);
   cursor: pointer;
   margin-bottom: 16px;
 }
@@ -33,7 +33,7 @@
 }
 .upload-zone b {
   font-size: 14px;
-  color: #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
 }
 .document-icon {
   width: 90px;
@@ -41,8 +41,8 @@
   display: grid;
   place-items: center;
   margin: 20px auto;
-  background: #edf3ff;
-  color: #3b71f3;
+  background: var(--theme-accent-edf3ff, #edf3ff);
+  color: var(--theme-accent-3b71f3, #3b71f3);
   border-radius: 16px;
   font-size: 40px;
 }

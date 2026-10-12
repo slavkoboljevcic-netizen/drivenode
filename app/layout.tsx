@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./styles/globals.css";
+import "./styles/theme.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const h = await headers();
@@ -29,8 +30,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sr">
-      <body className="antialiased">{children}</body>
+    <html lang="sr" suppressHydrationWarning>
+      <body className="antialiased">
+        <script dangerouslySetInnerHTML={{ __html: `try { document.documentElement.dataset.theme = localStorage.getItem("dnfm_theme") === "dark" ? "dark" : "light"; } catch {}` }} />
+        {children}
+      </body>
     </html>
   );
 }

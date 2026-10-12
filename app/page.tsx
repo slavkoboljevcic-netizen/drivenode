@@ -20,6 +20,7 @@ import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
 import NotificationCenter from "./components/NotificationCenter";
+import ThemeToggle from "./components/ThemeToggle";
 import VehicleOperationsCrud from "./components/VehicleOperationsCrud";
 import Button from "./components/Button";
 import CustomDatePicker from "./components/CustomDatePicker";
@@ -459,42 +460,42 @@ function Vehicles({
       "Ukupno vozila",
       String(all.length),
       "evidentirano u bazi",
-      "uživo",
+      "",
       "blue",
     ],
     [
       "Dostupno",
       String(all.filter((v) => v.status === "Dostupno").length),
       "spremno za najam",
-      "uživo",
+      "",
       "green",
     ],
     [
       "Iznajmljeno",
       String(all.filter((v) => v.status === "Iznajmljeno").length),
       "aktivno na putu",
-      "uživo",
+      "",
       "violet",
     ],
     [
       "Na servisu",
       String(all.filter((v) => v.status === "Na servisu").length),
       "trenutno nedostupno",
-      "uživo",
+      "",
       "red",
     ],
     [
       "Prosečna starost",
       all.length ? avgAge + " god." : "—",
       "iz stvarnih godišta",
-      "uživo",
+      "",
       "cyan",
     ],
     [
       "Lokacije",
       String(new Set(all.map((v) => v.location.split(" • ")[0])).size),
       "aktivne poslovnice",
-      "uživo",
+      "",
       "amber",
     ],
   ];
@@ -1409,40 +1410,40 @@ function Reservations({
     0,
   );
   const reservationKpis = [
-    ["Ukupno", String(all.length), "rezervacija u bazi", "uživo", "blue"],
+    ["Ukupno", String(all.length), "rezervacija u bazi", "", "blue"],
     [
       "Aktivne",
       String(all.filter((b) => b.status === "Aktivna").length),
       "najmova u toku",
-      "uživo",
+      "",
       "green",
     ],
     [
       "Potvrđene",
       String(all.filter((b) => b.status === "Potvrđena").length),
       "predstojeći najmovi",
-      "uživo",
+      "",
       "violet",
     ],
     [
       "Povrat danas",
       String(all.filter((b) => b.status === "Povrat danas").length),
       "zakazana povratka",
-      "uživo",
+      "",
       "red",
     ],
     [
       "Na čekanju",
       String(all.filter((b) => b.status === "Na čekanju").length),
       "zahteva za obradu",
-      "uživo",
+      "",
       "amber",
     ],
     [
       "Vrednost",
       totalValue.toLocaleString("sr-RS") + " RSD",
       "svih rezervacija",
-      "uživo",
+      "",
       "cyan",
     ],
   ];
@@ -1933,21 +1934,21 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
       "Ukupno klijenata",
       String(all.length),
       "u centralnoj bazi",
-      "uživo",
+      "",
       "blue",
     ],
     [
       "Aktivni",
       String(all.filter((c) => c.status === "Aktivan").length),
       "aktivnih naloga",
-      "uživo",
+      "",
       "green",
     ],
     [
       "Sa rezervacijama",
       String(all.filter((c) => c.reservations > 0).length),
       "ostvarili najam",
-      "uživo",
+      "",
       "violet",
     ],
     [
@@ -1957,21 +1958,21 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
           " RSD"
         : "0 RSD",
       "po klijentu",
-      "uživo",
+      "",
       "cyan",
     ],
     [
       "Loyalty članovi",
       String(all.filter((c) => c.status === "VIP").length),
       "VIP klijenata",
-      "uživo",
+      "",
       "amber",
     ],
     [
       "Ukupna vrednost",
       totalClientValue.toLocaleString("sr-RS") + " RSD",
       "svi klijenti",
-      "uživo",
+      "",
       "green",
     ],
   ];
@@ -2562,36 +2563,36 @@ function Services() {
           .length,
       ),
       "planiranih obaveza",
-      "uživo",
+      "",
       "red",
     ],
     [
       "Registracija",
       String(all.filter((s) => s.type === "Registracija").length),
       "evidentiranih rokova",
-      "uživo",
+      "",
       "amber",
     ],
     [
       "Na servisu",
       String(all.filter((s) => s.status === "U toku").length),
       "radova u toku",
-      "uživo",
+      "",
       "blue",
     ],
     [
       "Troškovi",
       serviceCost.toLocaleString("sr-RS") + " RSD",
       "svih servisnih zapisa",
-      "uživo",
+      "",
       "violet",
     ],
-    ["Završeno", String(completed), "servisnih radova", "uživo", "green"],
+    ["Završeno", String(completed), "servisnih radova", "", "green"],
     [
       "Uredno održavanje",
       all.length ? Math.round((completed / all.length) * 100) + "%" : "0%",
       "završenih obaveza",
-      "uživo",
+      "",
       "cyan",
     ],
   ];
@@ -3145,35 +3146,35 @@ function Finance() {
       "Ukupan prihod",
       income.toLocaleString("sr-RS") + " RSD",
       "plaćene transakcije",
-      "uživo",
+      "",
       "green",
     ],
     [
       "Broj prihoda",
       String(paid.filter((x) => x.kind === "Prihod").length),
       "evidentirane uplate",
-      "uživo",
+      "",
       "blue",
     ],
     [
       "Ukupni rashodi",
       expenses.toLocaleString("sr-RS") + " RSD",
       "plaćeni rashodi",
-      "uživo",
+      "",
       "red",
     ],
     [
       "Neto profit",
       (income - expenses).toLocaleString("sr-RS") + " RSD",
       "prihod minus rashodi",
-      "uživo",
+      "",
       "violet",
     ],
     [
       "Potraživanja",
       pending.toLocaleString("sr-RS") + " RSD",
       "transakcije na čekanju",
-      "uživo",
+      "",
       "amber",
     ],
     [
@@ -3184,7 +3185,7 @@ function Finance() {
           ).toLocaleString("sr-RS") + " RSD"
         : "0 RSD",
       "po transakciji najma",
-      "uživo",
+      "",
       "cyan",
     ],
   ];
@@ -5196,6 +5197,7 @@ function App() {
           />
           <div className="head-actions">
             <NotificationCenter go={go} />
+            <ThemeToggle />
             <Button
               variant="primary"
               className="new-reservation-button"

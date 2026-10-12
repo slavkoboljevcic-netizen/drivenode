@@ -16,17 +16,17 @@
 .reports-grid .panel-head button {
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--theme-surface, #fff);
   padding: 0 10px;
   font-size: 13px;
-  color: #637088;
+  color: var(--theme-muted, #637088);
   cursor: pointer;
 }
 .report-actions .custom-select__button,
 .reports-grid .panel-head .custom-select__button {
   border-color: var(--line);
   border-radius: 7px;
-  color: #637088;
+  color: var(--theme-muted, #637088);
   font-size: 13px;
   padding: 0 10px;
 }
@@ -34,8 +34,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #edf3ff;
-  color: #52647c;
+  background: var(--theme-accent-edf3ff, #edf3ff);
+  color: var(--theme-muted, #52647c);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 14px;
@@ -47,7 +47,7 @@
 .report-filter-note button {
   border: 0;
   background: transparent;
-  color: #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
   cursor: pointer;
 }
 .report-row {
@@ -58,17 +58,17 @@
   text-align: left;
 }
 .report-row:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .report-ranking {
   width: 100%;
   border: 0;
-  background: #fff;
+  background: var(--theme-surface, #fff);
   text-align: left;
   cursor: pointer;
 }
 .report-ranking:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .report-bottom {
   display: grid;
@@ -98,12 +98,12 @@
 .mini-bars i {
   display: block;
   width: 80%;
-  background: #3b71f3;
+  background: var(--theme-accent-3b71f3, #3b71f3);
   border-radius: 5px 5px 0 0;
 }
 .mini-bars span {
   font-size: 12px;
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
 }
 .rating-card > button {
   width: 100%;
@@ -112,12 +112,12 @@
   gap: 8px;
   align-items: center;
   border: 0;
-  background: #fff;
+  background: var(--theme-surface, #fff);
   padding: 8px;
   cursor: pointer;
 }
 .rating-card > button:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .rating-card button span,
 .rating-card button b {
@@ -125,7 +125,7 @@
 }
 .rating-card button i {
   height: 7px;
-  background: #e9edf4;
+  background: var(--theme-subtle, #e9edf4);
   border-radius: 5px;
 }
 .rating-card button em {
@@ -137,8 +137,8 @@
 .report-big-value {
   font-size: 31px;
   font-weight: 800;
-  color: #3b71f3;
-  background: #edf3ff;
+  color: var(--theme-accent-3b71f3, #3b71f3);
+  background: var(--theme-accent-edf3ff, #edf3ff);
   border-radius: 10px;
   padding: 20px;
   margin: 20px 0;
@@ -146,7 +146,7 @@
 .report-panel > p {
   font-size: 14px;
   line-height: 1.7;
-  color: #66738a;
+  color: var(--theme-muted, #66738a);
 }
 @media (max-width: 1050px) {
   .report-head {

@@ -1,6 +1,6 @@
 .dashboard-revenue-bars {
   align-items: flex-end;
-  border-bottom: 1px solid #e8edf4;
+  border-bottom: 1px solid var(--theme-border, #e8edf4);
   display: flex;
   gap: 4px;
   height: 150px;
@@ -8,7 +8,7 @@
 }
 
 .dashboard-revenue-bars i {
-  background: #3b71f3;
+  background: var(--theme-accent-3b71f3, #3b71f3);
   border-radius: 5px 5px 1px 1px;
   display: block;
   flex: 1;

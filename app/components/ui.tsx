@@ -70,7 +70,7 @@ export function KpiCard({
       <strong>{value}</strong>
       <footer>
         <small>{description}</small>
-        <b className={tone}>{metric}</b>
+        {metric && <b className={tone}>{metric}</b>}
       </footer>
     </>
   );

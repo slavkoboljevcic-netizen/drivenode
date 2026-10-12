@@ -16,16 +16,16 @@
 }
 .calendar-nav button {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--theme-surface, #fff);
   border-radius: 7px;
   padding: 0 12px;
-  color: #637088;
+  color: var(--theme-muted, #637088);
   font-size: 14px;
 }
 .calendar-toolbar .custom-select__button {
   border-color: var(--line);
   border-radius: 7px;
-  color: #637088;
+  color: var(--theme-muted, #637088);
   font-size: 14px;
   padding: 0 12px;
 }
@@ -43,34 +43,34 @@
   cursor: pointer;
 }
 .calendar-grid > div:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .calendar-grid > div.outside {
-  background: #fafbfc;
-  color: #b1bac8;
+  background: var(--theme-surface, #fafbfc);
+  color: var(--theme-muted, #b1bac8);
 }
 .calendar-event {
   cursor: pointer !important;
-  color: #30415f;
+  color: var(--theme-text, #30415f);
   line-height: 1.25;
 }
 .calendar-event b {
   font-size: 12px;
 }
 .calendar-event.green {
-  background: #eaf9f4;
+  background: var(--theme-tint-eaf9f4, #eaf9f4);
 }
 .calendar-event.blue {
-  background: #edf3ff;
+  background: var(--theme-accent-edf3ff, #edf3ff);
 }
 .calendar-event.red {
-  background: #fff0f2;
+  background: var(--theme-surface, #fff0f2);
 }
 .calendar-event.violet {
-  background: #f3effc;
+  background: var(--theme-surface, #f3effc);
 }
 .calendar-event.amber {
-  background: #fff7e8;
+  background: var(--theme-tint-fff7e8, #fff7e8);
 }
 .week-calendar {
   padding: 0;
@@ -105,7 +105,7 @@
   place-items: center;
   margin: 5px auto 0;
   border-radius: 50%;
-  background: #3b71f3;
+  background: var(--theme-accent-3b71f3, #3b71f3);
   color: #fff;
 }
 .week-calendar > div > section {
@@ -122,7 +122,7 @@
 .week-calendar small {
   display: block;
   text-align: center;
-  color: #a0a9b7;
+  color: var(--theme-muted, #a0a9b7);
   font-size: 12px;
   margin-top: 25px;
 }
@@ -141,7 +141,7 @@
 }
 .day-hours span {
   font-size: 12px;
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   text-align: center;
 }
 .day-agenda {
@@ -149,16 +149,16 @@
   padding: 18px;
   background: repeating-linear-gradient(
     to bottom,
-    #fff 0,
-    #fff 43px,
-    #edf0f5 44px
+    var(--theme-surface, #fff) 0,
+    var(--theme-surface, #fff) 43px,
+    var(--theme-subtle, #edf0f5) 44px
   );
 }
 .day-agenda .calendar-event {
   display: block;
   width: min(420px, 95%);
   border: 0;
-  border-left: 4px solid #3b71f3;
+  border-left: 4px solid var(--theme-accent-3b71f3, #3b71f3);
   border-radius: 6px;
   padding: 11px;
   text-align: left;
@@ -171,7 +171,7 @@
   align-items: center;
   gap: 6px;
   margin-top: 130px;
-  color: #8792a8;
+  color: var(--theme-muted, #8792a8);
 }
 .calendar-empty b {
   font-size: 15px;
@@ -183,9 +183,9 @@
   position: absolute;
   left: 18px;
   bottom: 18px;
-  border: 1px dashed #8facf4;
-  background: #f4f7ff;
-  color: #3b71f3;
+  border: 1px dashed var(--theme-accent-8facf4, #8facf4);
+  background: var(--theme-accent-f4f7ff, #f4f7ff);
+  color: var(--theme-accent-3b71f3, #3b71f3);
   border-radius: 7px;
   padding: 10px 14px;
   cursor: pointer;
@@ -201,7 +201,7 @@
   background: transparent;
   cursor: pointer;
   font-size: 13px;
-  color: #637088;
+  color: var(--theme-muted, #637088);
 }
 @media (max-width: 850px) {
   .calendar-toolbar {

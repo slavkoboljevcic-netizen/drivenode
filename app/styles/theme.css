@@ -1,0 +1,82 @@
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #FFFFFF;
+  --blue: #FF7900;
+  --theme-accent-1e40af3d: #FF79003d;
+  --theme-accent-244a8d99: #FF790099;
+  --theme-accent-2563eb45: #FF790045;
+  --theme-accent-2f64e8: #FF7900;
+  --theme-accent-3159a5: #FF7900;
+  --theme-accent-3972ee: #FF7900;
+  --theme-accent-3b71f3: #FF7900;
+  --theme-accent-3b71f314: #FF790014;
+  --theme-accent-3b71f31a: #FF79001a;
+  --theme-accent-3b71f322: #FF790022;
+  --theme-accent-3b71f333: #FF790033;
+  --theme-accent-3b71f340: #FF790040;
+  --theme-accent-487bf1: #FF7900;
+  --theme-accent-4b7df433: #FF790033;
+  --theme-accent-6190ff: #FF7900;
+  --theme-accent-7fa4ff: #FF7900;
+  --theme-accent-8facf4: #FF7900;
+  --theme-accent-91aff8: #FF7900;
+  --theme-accent-9db6f5: #FF7900;
+  --theme-accent-a9bff5: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-b7c6e5: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-b8c9f4: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-cbd8f4: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-d8e5ff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-dbe3f2: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-e3edff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-edf3ff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-f2f6ff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-f3f6fc: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-f4f7fc: #1E1E1E;
+  --theme-accent-f4f7ff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-f5f8ff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-accent-f7f9fc: #1E1E1E;
+  --theme-accent-f7f9fd: #1E1E1E;
+  --theme-accent-f8faff: #1E1E1E;
+  --theme-accent-fbfcfe: #1E1E1E;
+  --theme-accent-fbfcff: #1E1E1E;
+  --theme-accent-fbfdff: #1E1E1E;
+
+  --muted: #A1A1AA;
+  --line: #333333;
+  --sidebar: #1E1E1E;
+  --theme-canvas: #121212;
+  --theme-surface: #1E1E1E;
+  --theme-subtle: #262626;
+  --theme-text: #FFFFFF;
+  --theme-muted: #A1A1AA;
+  --theme-border: #333333;
+  --theme-tint-e3edff: color-mix(in srgb, #FF7900 15%, #1E1E1E);
+  --theme-tint-eaf8f3: color-mix(in srgb, #eaf8f3 12%, #1E1E1E);
+  --theme-tint-eaf8fa: color-mix(in srgb, #eaf8fa 12%, #1E1E1E);
+  --theme-tint-eaf9f4: color-mix(in srgb, #eaf9f4 12%, #1E1E1E);
+  --theme-tint-fff6e7: color-mix(in srgb, #fff6e7 12%, #1E1E1E);
+  --theme-tint-fff7e8: color-mix(in srgb, #fff7e8 12%, #1E1E1E);
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--theme-surface, #fff);
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.theme-toggle:hover {
+  background: var(--theme-subtle, #f5f7fb);
+}
+
+@media (max-width: 760px) {
+  .theme-toggle .theme-toggle-label { display: none; }
+}

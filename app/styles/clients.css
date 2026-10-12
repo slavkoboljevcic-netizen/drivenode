@@ -1,11 +1,11 @@
 .reservation-form textarea,
 .add-vehicle textarea,
 .client-notes textarea {
-  background: #fbfdff;
-  color: #263149;
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  color: var(--theme-text, #263149);
   width: 100%;
   min-height: 90px;
-  border: 1px solid #d8e1ee;
+  border: 1px solid var(--theme-border, #d8e1ee);
   border-radius: 10px;
   padding: 11px 12px;
   margin-top: 8px;
@@ -22,14 +22,14 @@
 .reservation-form textarea::placeholder,
 .add-vehicle textarea::placeholder,
 .client-notes textarea::placeholder {
-  color: #8b96aa;
+  color: var(--theme-muted, #8b96aa);
   font-weight: 400;
 }
 .reservation-form textarea:focus,
 .add-vehicle textarea:focus,
 .client-notes textarea:focus {
-  border-color: #3b71f3;
-  box-shadow: 0 0 0 3px #3b71f31a;
+  border-color: var(--theme-accent-3b71f3, #3b71f3);
+  box-shadow: 0 0 0 3px var(--theme-accent-3b71f31a, #3b71f31a);
 }
 .client-hero {
   display: flex;
@@ -43,8 +43,8 @@
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #edf3ff;
-  color: #3b71f3;
+  background: var(--theme-accent-edf3ff, #edf3ff);
+  color: var(--theme-accent-3b71f3, #3b71f3);
   font-weight: 800;
 }
 .client-hero h2 {
@@ -63,12 +63,12 @@
   background: transparent;
   padding: 12px 8px;
   font-size: 13px;
-  color: #748098;
+  color: var(--theme-muted, #748098);
   cursor: pointer;
 }
 .client-tabs button.active {
-  color: #3b71f3;
-  border-bottom: 2px solid #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
+  border-bottom: 2px solid var(--theme-accent-3b71f3, #3b71f3);
   font-weight: 700;
 }
 .client-contact {
@@ -83,7 +83,7 @@
 }
 .client-contact small {
   font-size: 12px;
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   margin-bottom: 5px;
 }
 .client-contact b {
@@ -96,19 +96,19 @@
   padding-top: 20px;
 }
 .client-edit label {
-  color: #60708a;
+  color: var(--theme-muted, #60708a);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
   line-height: 1.35;
 }
 .client-edit .custom-input {
-  background: #fbfdff;
-  color: #263149;
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  color: var(--theme-text, #263149);
   display: block;
   width: 100%;
   height: 42px;
-  border: 1px solid #d8e1ee;
+  border: 1px solid var(--theme-border, #d8e1ee);
   border-radius: 10px;
   padding: 0 12px;
   margin-top: 8px;
@@ -120,12 +120,12 @@
     box-shadow 0.16s ease;
 }
 .client-edit .custom-input::placeholder {
-  color: #8b96aa;
+  color: var(--theme-muted, #8b96aa);
   font-weight: 400;
 }
 .client-edit .custom-input:focus {
-  border-color: #3b71f3;
-  box-shadow: 0 0 0 3px #3b71f31a;
+  border-color: var(--theme-accent-3b71f3, #3b71f3);
+  box-shadow: 0 0 0 3px var(--theme-accent-3b71f31a, #3b71f31a);
 }
 .client-edit .custom-select {
   display: block;
@@ -134,10 +134,10 @@
   width: 100%;
 }
 .client-edit .custom-select__button {
-  background: #fbfdff;
-  border-color: #d8e1ee;
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  border-color: var(--theme-border, #d8e1ee);
   border-radius: 10px;
-  color: #263149;
+  color: var(--theme-text, #263149);
   font-weight: 400;
   padding: 0 12px;
 }
@@ -154,7 +154,7 @@
   align-items: center;
   justify-content: space-between;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--theme-surface, #fff);
   border-radius: 8px;
   padding: 11px;
   margin: 7px 0;
@@ -162,7 +162,7 @@
   cursor: pointer;
 }
 .client-records > button:hover {
-  background: #f8faff;
+  background: var(--theme-accent-f8faff, #f8faff);
 }
 .client-records b,
 .client-records small {
@@ -170,11 +170,11 @@
   font-size: 13px;
 }
 .client-records small {
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   margin-top: 5px;
 }
 .client-records > button > span {
-  color: #3b71f3;
+  color: var(--theme-accent-3b71f3, #3b71f3);
   font-size: 13px;
 }
 .client-notes {

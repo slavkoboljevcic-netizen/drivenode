@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  background: #f7f9fc;
+  background: var(--theme-accent-f7f9fc, #f7f9fc);
   border-radius: 10px;
   padding: 16px;
   margin: 20px 0;
@@ -13,7 +13,7 @@
 }
 .service-summary small {
   font-size: 12px;
-  color: #8d98aa;
+  color: var(--theme-muted, #8d98aa);
   margin-bottom: 5px;
 }
 .service-summary b {
@@ -25,7 +25,7 @@
   gap: 12px;
 }
 .service-edit label {
-  color: #60708a;
+  color: var(--theme-muted, #60708a);
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 0;
@@ -36,11 +36,11 @@
 }
 .service-edit .custom-input,
 .service-edit textarea {
-  background: #fbfdff;
-  color: #263149;
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  color: var(--theme-text, #263149);
   display: block;
   width: 100%;
-  border: 1px solid #d8e1ee;
+  border: 1px solid var(--theme-border, #d8e1ee);
   border-radius: 10px;
   padding: 0 12px;
   margin-top: 8px;
@@ -54,13 +54,13 @@
 }
 .service-edit .custom-input::placeholder,
 .service-edit textarea::placeholder {
-  color: #8b96aa;
+  color: var(--theme-muted, #8b96aa);
   font-weight: 400;
 }
 .service-edit .custom-input:focus,
 .service-edit textarea:focus {
-  border-color: #3b71f3;
-  box-shadow: 0 0 0 3px #3b71f31a;
+  border-color: var(--theme-accent-3b71f3, #3b71f3);
+  box-shadow: 0 0 0 3px var(--theme-accent-3b71f31a, #3b71f31a);
 }
 .service-edit .custom-input {
   height: 42px;
@@ -72,10 +72,10 @@
   width: 100%;
 }
 .service-edit .custom-select__button {
-  background: #fbfdff;
-  border-color: #d8e1ee;
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  border-color: var(--theme-border, #d8e1ee);
   border-radius: 10px;
-  color: #263149;
+  color: var(--theme-text, #263149);
   font-weight: 400;
   padding: 0 12px;
 }
