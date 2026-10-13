@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate, statusTone } from "../lib";
 import Button from "./Button";
 import CustomSelect from "./CustomSelect";
 import {
@@ -8,7 +9,7 @@ import {
   BackIcon,
   ChevronRightIcon,
 } from "./icons";
-import { PageHeader, onKeyboardAction } from "./ui";
+import { StatusBadge, PageHeader, onKeyboardAction } from "./ui";
 
 export type CalendarBooking = {
   id: string;
@@ -40,43 +41,10 @@ const statuses = [
   "Otkazana",
 ];
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? `${date.toLocaleDateString("sr-RS", { day: "2-digit", month: "short" })} • ${date.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" })}`
-    : value;
-};
-
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
   a.getDate() === b.getDate();
-
-const badgeTone = (status = "") =>
-  status.includes("Dostupno") ||
-  status.includes("Plaćeno") ||
-  status.includes("Aktivan")
-    ? "green"
-    : status.includes("Iznajmljeno") ||
-        status.includes("Aktivna") ||
-        status.includes("U toku")
-      ? "blue"
-      : status.includes("Povrat") ||
-          status.includes("servisu") ||
-          status.includes("Uskoro")
-        ? "red"
-        : status.includes("Potvr") || status.includes("Rezervisano")
-          ? "violet"
-          : "amber";
-
-function StatusBadge({ status }: { status?: string }) {
-  return (
-    <span className={`badge ${badgeTone(status)}`}>
-      <i />
-      {status || "Nije određeno"}
-    </span>
-  );
-}
 
 export default function BookingCalendar({
   open,
@@ -173,7 +141,7 @@ export default function BookingCalendar({
   const eventButton = (booking: CalendarEvent) => (
     <Button
       key={booking.id}
-      className={`calendar-event ${badgeTone(booking.status)}`}
+      className={`calendar-event ${statusTone(booking.status)}`}
       onClick={(event) => {
         event.stopPropagation();
         open(booking);

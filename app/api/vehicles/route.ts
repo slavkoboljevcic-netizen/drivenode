@@ -1,8 +1,8 @@
+import { clean } from "../../lib";
 import { desc, eq, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { vehicles } from "../../../db/schema";
 
-const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const asRegistered = (value: unknown) => !(
   value === false || value === 0 || value === "0" || value === "false" || value === "Nije registrovano"
 );

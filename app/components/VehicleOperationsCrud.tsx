@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import "../styles/vehicle-operations-crud.css";
+import { displayPlate } from "../lib";
 import Button from "./Button";
 import CustomDatePicker from "./CustomDatePicker";
 import CustomInput from "./CustomInput";
@@ -8,10 +9,7 @@ import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
 type Vehicle = { name: string; plate: string; km: string; location: string; registered?: boolean };
-const displayPlate = (plate: string, registered?: boolean) =>
-  registered === false || plate.startsWith("DNFM-NEREG-")
-    ? "Nema tablica"
-    : plate;
+
 type Row = {
   id?: number;
   code?: string;

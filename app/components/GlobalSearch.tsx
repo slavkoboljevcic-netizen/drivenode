@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import "../styles/global-search.css";
+import { bookingDate } from "../lib";
 import Button from "./Button";
 import CustomInput from "./CustomInput";
 import { SearchIcon } from "./icons";
@@ -34,9 +34,6 @@ type Result = {
   subtitle: string;
   data: Record<string, unknown>;
 };
-
-const bookingDate = (value: unknown) =>
-  `${new Date(String(value)).toLocaleDateString("sr-Latn-RS")} • ${new Date(String(value)).toLocaleTimeString("sr-Latn-RS", { hour: "2-digit", minute: "2-digit" })}`;
 
 export default function GlobalSearch({
   openVehicle,
@@ -113,8 +110,8 @@ export default function GlobalSearch({
         id: String(row.code),
         client: String(row.client),
         vehicle: String(row.vehicle),
-        from: bookingDate(row.startsAt),
-        to: bookingDate(row.endsAt),
+        from: bookingDate(String(row.startsAt)),
+        to: bookingDate(String(row.endsAt)),
         price: `${Number(row.price).toLocaleString("sr-RS")} RSD`,
         status: String(row.status),
       });
@@ -140,7 +137,6 @@ export default function GlobalSearch({
         placeholder="Pretraži vozila, rezervacije, klijente..."
         aria-label="Globalna pretraga"
       />
-      <kbd>⌘ K</kbd>
       {query.trim().length >= 2 && (
         <div className="search-results">
           {loading && <div className="search-state">Pretraživanje…</div>}

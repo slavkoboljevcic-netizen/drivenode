@@ -3,8 +3,18 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import Button from "./Button";
 import { AddIcon, KpiIcon } from "./icons";
+import { statusTone } from "../lib";
 
 type Tone = "blue" | "green" | "violet" | "amber" | "red" | "cyan";
+
+export function StatusBadge({ status }: { status?: string }) {
+  return (
+    <span className={`badge ${statusTone(status)}`}>
+      <i />
+      {status || "Nije određeno"}
+    </span>
+  );
+}
 
 export function onKeyboardAction(action: () => void) {
   return (event: KeyboardEvent<HTMLElement>) => {

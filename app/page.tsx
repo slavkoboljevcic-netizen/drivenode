@@ -16,6 +16,7 @@ import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
 import "./styles/brand-logo.css";
+import { displayPlate, formatDate } from "./lib";
 import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
@@ -27,6 +28,7 @@ import CustomDatePicker from "./components/CustomDatePicker";
 import CustomInput from "./components/CustomInput";
 import CustomSelect from "./components/CustomSelect";
 import {
+  StatusBadge,
   DrawerFrame,
   EmptyState,
   KpiCard,
@@ -65,10 +67,7 @@ type V = {
   transmission: string;
   registered: boolean;
 };
-const displayPlate = (plate: string, registered?: boolean) =>
-  registered === false || plate.startsWith("DNFM-NEREG-")
-    ? "Nema tablica"
-    : plate;
+
 type B = {
   id: string;
   client: string;
@@ -191,24 +190,7 @@ const defaultCurrentUser = {
   name: "Administrator",
   role: "Administrator",
 };
-const tone = (s = "") =>
-  s.includes("Dostupno") || s.includes("Plaćeno") || s.includes("Aktivan")
-    ? "green"
-    : s.includes("Iznajmljeno") || s.includes("Aktivna") || s.includes("U toku")
-      ? "blue"
-      : s.includes("Povrat") || s.includes("servisu") || s.includes("Uskoro")
-        ? "red"
-        : s.includes("Potvr") || s.includes("Rezervisano")
-          ? "violet"
-          : "amber";
-function Badge({ s }: { s?: string }) {
-  return (
-    <span className={`badge ${tone(s)}`}>
-      <i />
-      {s || "Nije određeno"}
-    </span>
-  );
-}
+
 const safePermissions = (value: unknown): string[] => {
   if (Array.isArray(value)) return value.filter((x) => typeof x === "string");
   if (typeof value !== "string") return [];
@@ -634,7 +616,7 @@ function Vehicles({
                     </div>
                   </td>
                   <td>
-                    <Badge s={v.status} />
+                    <StatusBadge status={v.status} />
                   </td>
                   <td>{v.km}</td>
                   <td>{v.location}</td>
@@ -926,7 +908,7 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           <VehicleIcon aria-hidden="true" />
         </div>
         <div>
-          <Badge s={current.status} />
+          <StatusBadge status={current.status} />
           <h1>{current.name}</h1>
           <p>
             {current.year} • {displayPlate(current.plate, current.registered)}
@@ -1555,7 +1537,7 @@ function Reservations({
                     <small>Plaćeno karticom</small>
                   </td>
                   <td>
-                    <Badge s={b.status} />
+                    <StatusBadge status={b.status} />
                   </td>
                   <td>
                     <RowMenu
@@ -1585,12 +1567,7 @@ function Reservations({
     </>
   );
 }
-const formatDate = (value: string) => {
-  const d = new Date(value);
-  return Number.isFinite(d.getTime())
-    ? `${d.toLocaleDateString("sr-RS", { day: "2-digit", month: "short" })} • ${d.toLocaleTimeString("sr-RS", { hour: "2-digit", minute: "2-digit" })}`
-    : value;
-};
+
 function NewReservationModal({
   close,
   saved,
@@ -1803,7 +1780,7 @@ function BookingPanel({
         </Button>
         <small>REZERVACIJA {b.id}</small>
         <h2>{b.client}</h2>
-        <Badge s={s} />
+        <StatusBadge status={s} />
         <div className="booking-car">
           <div className="big-car">
             <VehicleIcon aria-hidden="true" />
@@ -2093,7 +2070,7 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
                     <strong>{c.value.toLocaleString("sr-RS")} RSD</strong>
                   </td>
                   <td>
-                    <Badge s={c.status} />
+                    <StatusBadge status={c.status} />
                   </td>
                   <td>
                     <RowMenu
@@ -2358,7 +2335,7 @@ function ClientPanel({
           </span>
           <div>
             <h2>{form.name}</h2>
-            <Badge s={form.status} />
+            <StatusBadge status={form.status} />
           </div>
         </div>
         <div className="client-tabs">
@@ -2470,7 +2447,7 @@ function ClientPanel({
                       {b.from} — {b.to}
                     </small>
                   </div>
-                  <Badge s={b.status} />
+                  <StatusBadge status={b.status} />
                 </Button>
               ))}
             {!bookings.some((b) => b.client === form.name) && (
@@ -2718,7 +2695,7 @@ function Services() {
                     </strong>
                   </td>
                   <td>
-                    <Badge s={s.status} />
+                    <StatusBadge status={s.status} />
                   </td>
                   <td>
                     <RowMenu
@@ -2989,7 +2966,7 @@ function ServicePanel({
         </Button>
         <small>SERVISNI ZAPIS {form.code}</small>
         <h2>{form.vehicle}</h2>
-        <Badge s={form.status} />
+        <StatusBadge status={form.status} />
         <div className="service-summary">
           <div>
             <small>Tablice</small>
@@ -3347,7 +3324,7 @@ function Finance() {
                     </strong>
                   </td>
                   <td>
-                    <Badge s={x.status} />
+                    <StatusBadge status={x.status} />
                   </td>
                   <td>
                     <RowMenu
@@ -3589,7 +3566,7 @@ function TransactionPanel({
         </Button>
         <small>TRANSAKCIJA {item.reference}</small>
         <h2>{item.description}</h2>
-        <Badge s={status} />
+        <StatusBadge status={status} />
         <div className="transaction-amount">
           <small>{item.kind}</small>
           <b>
@@ -4460,7 +4437,7 @@ function Users() {
                     <td>{u.branch}</td>
                     <td>{u.lastActive}</td>
                     <td>
-                      <Badge s={u.status} />
+                      <StatusBadge status={u.status} />
                     </td>
                     <td>
                       <RowMenu
@@ -4728,7 +4705,7 @@ function UserPanel({
           </span>
           <div>
             <h2>{form.name}</h2>
-            <Badge s={form.status} />
+            <StatusBadge status={form.status} />
           </div>
         </div>
         <div className="client-edit">

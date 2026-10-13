@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { access, readFile, readdir } from "node:fs/promises";
 import test from "node:test";
+import ts from "typescript";
 
 const projectRoot = new URL("../", import.meta.url);
 
@@ -9,11 +10,28 @@ async function render() {
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
+  // This render only needs startup schema initialization, not application data.
+  // Keep D1 isolated from the developer's local and production databases.
+  const statements = [];
+  const DB = {
+    prepare(sql) {
+      statements.push(sql);
+      return { sql };
+    },
+    async batch(queries) {
+      assert.ok(queries.length > 0);
+      assert.equal(queries.length, statements.length);
+      assert.ok(statements.every((sql) => /^CREATE (TABLE|UNIQUE INDEX) IF NOT EXISTS/.test(sql)));
+      return queries.map(() => ({ success: true, results: [] }));
+    },
+  };
+
   return worker.fetch(
     new Request("http://localhost/", {
       headers: { accept: "text/html" },
     }),
     {
+      DB,
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
@@ -36,6 +54,29 @@ test("server-renders the DriveNode shell metadata", async () => {
   assert.match(html, /Pametnije upravljanje rent-a-car flotom u Srbiji\./i);
   assert.match(html, /<link rel="icon" href="\/favicon\.svg">/i);
   assert.doesNotMatch(html, /Your site is taking shape|Building your site/i);
+});
+
+test("shared helpers preserve input and display boundaries", async () => {
+  const source = await readFile(new URL("../app/lib.ts", import.meta.url), "utf8");
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext },
+  });
+  const { clean, displayPlate, formatDate, bookingDate, statusTone } =
+    await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+
+  assert.equal(clean("  Novi Sad \n"), "Novi Sad");
+  for (const value of [null, undefined, 0, false, {}, []]) assert.equal(clean(value), "");
+  assert.equal(displayPlate("BG-123-AB", true), "BG-123-AB");
+  assert.equal(displayPlate("BG-123-AB", false), "Nema tablica");
+  assert.equal(displayPlate("DNFM-NEREG-TEST"), "Nema tablica");
+  assert.equal(formatDate("nije datum"), "nije datum");
+  assert.match(formatDate("2026-10-12T14:35:00"), / • 14:35$/);
+  assert.match(bookingDate("2026-10-12T14:35:00"), /^12\. 10\. 2026\. • 14:35$/);
+  for (const [status, expected] of [
+    ["Dostupno", "green"], ["Aktivna", "blue"], ["U toku", "blue"],
+    ["Na servisu", "red"], ["Uskoro", "red"], ["Potvrđena", "violet"],
+    ["Rezervisano", "violet"], ["Otkazana", "amber"], [undefined, "amber"],
+  ]) assert.equal(statusTone(status), expected);
 });
 
 test("keeps app structure, local Montserrat font and npm package setup", async () => {

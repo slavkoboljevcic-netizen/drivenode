@@ -1,9 +1,8 @@
+import { clean } from "../../lib";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { clients } from "../../../db/schema";
 
-const clean = (value: unknown) =>
-  typeof value === "string" ? value.trim() : "";
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const validate = (values: {
   name: string;

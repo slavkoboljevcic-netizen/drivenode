@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import "../styles/dashboard-live.css";
+import { bookingDate } from "../lib";
 import Button from "./Button";
 import {
   AddIcon,
@@ -91,8 +92,7 @@ const displayDate = (value: string) =>
     day: "2-digit",
     month: "2-digit",
   });
-const bookingDate = (value: string) =>
-  `${new Date(value).toLocaleDateString("sr-Latn-RS")} • ${new Date(value).toLocaleTimeString("sr-Latn-RS", { hour: "2-digit", minute: "2-digit" })}`;
+
 const badgeTone = (status: string) =>
   status.includes("Aktiv")
     ? "blue"

@@ -1,8 +1,8 @@
+import { clean } from "../../lib";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { serviceRecords } from "../../../db/schema";
 
-const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 const allowed = ["Planirano", "Uskoro", "U toku", "Završeno", "Otkazano"];
 
 export async function GET() {

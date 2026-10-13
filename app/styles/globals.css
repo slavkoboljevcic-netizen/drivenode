@@ -575,22 +575,6 @@
   padding: 7px 9px;
   border-radius: 12px;
 }
-.login-metrics {
-  display: flex;
-  gap: 40px;
-  margin-top: 38px;
-}
-.login-metrics b,
-.login-metrics small {
-  display: block;
-}
-.login-metrics b {
-  font-size: 22px;
-}
-.login-metrics small {
-  color: var(--theme-muted, #8797b0);
-  margin-top: 5px;
-}
 .login-form {
   display: grid;
   place-items: center;
@@ -670,9 +654,6 @@
   color: var(--theme-muted, #9aa4b3);
   margin-top: 15px;
 }
-.search {
-  position: relative;
-}
 .search-results {
   position: absolute;
   left: 0;
@@ -706,6 +687,16 @@
   color: var(--theme-muted, #8e99aa);
   margin-top: 3px;
 }
+.search-state {
+  color: var(--theme-muted, #71809c);
+  font-size: 14px;
+  padding: 14px;
+}
+.search-results button small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 @media (max-width: 1050px) {
   .dashboard-lower {
     grid-template-columns: 1fr 1fr;
@@ -727,11 +718,6 @@
   }
   .timeline {
     grid-column: auto;
-  }
-  .calendar-tools {
-    align-items: flex-start;
-    gap: 10px;
-    flex-wrap: wrap;
   }
   .calendar-grid > div {
     min-height: 75px;
@@ -1047,7 +1033,6 @@
   font-size: 13px;
 }
 .doc-row span {
-  float: right;
   color: var(--theme-accent-3b71f3, #3b71f3);
 }
 .status-control {
@@ -1074,15 +1059,6 @@
 .drawer-action {
   width: 100%;
   margin-top: 13px;
-}
-.calendar-tools {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 13px;
-}
-.calendar-tools h2 {
-  font-size: 16px;
 }
 .segmented {
   padding: 3px;
@@ -1300,29 +1276,6 @@
   color: var(--theme-accent-3b71f3, #3b71f3);
   margin-right: 9px;
 }
-.line-chart {
-  height: 116px;
-  margin-top: 12px;
-  background: linear-gradient(180deg, var(--theme-accent-4b7df433, #4b7df433), transparent);
-  clip-path: polygon(
-    0 80%,
-    8% 67%,
-    15% 72%,
-    23% 45%,
-    32% 58%,
-    40% 38%,
-    48% 51%,
-    57% 26%,
-    65% 39%,
-    74% 18%,
-    82% 28%,
-    91% 8%,
-    100% 20%,
-    100% 100%,
-    0 100%
-  );
-  border-bottom: 2px solid var(--theme-accent-3b71f3, #3b71f3);
-}
 .chart-labels.static {
   position: static;
   margin-top: 7px;
@@ -1351,8 +1304,7 @@
   width: 100%;
   font-size: 14px;
 }
-.toolbar button,
-.calendar-tools button {
+.toolbar button {
   height: 36px;
   border: 1px solid var(--line);
   background: var(--theme-surface, #fff);
@@ -2062,15 +2014,6 @@ header {
   color: var(--theme-accent-2f64e8, #2f64e8);
   transform: translateY(-1px);
 }
-.dot {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: #f0505e;
-  border-radius: 50%;
-  right: 8px;
-  top: 7px;
-}
 .primary {
   height: 44px;
   border: 0;
@@ -2390,17 +2333,6 @@ button.kpi {
   position: relative;
   margin-top: 8px;
   border-bottom: 1px solid var(--theme-border, #edf0f5);
-}
-.grid-lines {
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    to bottom,
-    var(--theme-subtle, #eef1f6) 0,
-    var(--theme-subtle, #eef1f6) 1px,
-    transparent 1px,
-    transparent 34px
-  );
 }
 .bars {
   position: absolute;

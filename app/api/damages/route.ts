@@ -1,7 +1,8 @@
+import { clean } from "../../lib";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { vehicleDamages } from "../../../db/schema";
-const clean = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
 export async function GET() {
   try {
     return Response.json({

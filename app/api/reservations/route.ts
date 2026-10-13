@@ -1,8 +1,7 @@
+import { clean } from "../../lib";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { deletedRecords, reservations } from "../../../db/schema";
-
-const clean = (value: unknown) => typeof value === "string" ? value.trim() : "";
 
 export async function GET() {
   try {
