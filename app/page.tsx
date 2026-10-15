@@ -384,9 +384,11 @@ function Kpis({
 function Vehicles({
   open,
   addTrigger = 0,
+  onAddHandled,
 }: {
   open: (v: V) => void;
   addTrigger?: number;
+  onAddHandled: () => void;
 }) {
   const [q, setQ] = useState("");
   const { deleted } = useSoftDelete("vehicles");
@@ -412,8 +414,11 @@ function Vehicles({
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
-    if (addTrigger > 0) setShowAdd(true);
-  }, [addTrigger]);
+    if (addTrigger > 0) {
+      setShowAdd(true);
+      onAddHandled();
+    }
+  }, [addTrigger, onAddHandled]);
   const all = [...added, ...vehicles]
     .filter((v) => !deleted.has(v.plate))
     .filter((v, i, a) => a.findIndex((x) => x.plate === v.plate) === i);
@@ -5079,7 +5084,11 @@ function App() {
   else
     c =
       page === "Vozila" ? (
-        <Vehicles open={openVehicle} addTrigger={vehicleAddTrigger} />
+        <Vehicles
+          open={openVehicle}
+          addTrigger={vehicleAddTrigger}
+          onAddHandled={() => setVehicleAddTrigger(0)}
+        />
       ) : page === "Rezervacije" ? (
         <Reservations
           open={openReservation}

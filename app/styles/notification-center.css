@@ -1,11 +1,12 @@
-.notification-center{position:relative;z-index:70}
+.notification-center{position:relative;z-index:19}
+.app-shell:has(.drawer-wrap) .notification-center{visibility:hidden}
 .notification-trigger{position:relative!important;display:grid!important;place-items:center!important;width:38px!important;height:38px!important;padding:0!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--theme-surface, #fff)!important;color:var(--theme-muted, #52617a)!important;box-shadow:0 1px 2px #18213a0d!important;cursor:pointer}
 .notification-trigger:hover,.notification-trigger.active{border-color:var(--theme-accent-b8c9f4, #b8c9f4)!important;background:var(--theme-accent-f5f8ff, #f5f8ff)!important;color:var(--blue)!important}
 .notification-trigger svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .notification-badge{position:absolute;right:-6px;top:-6px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 5px;border:2px solid var(--theme-border, #fff);border-radius:10px;background:#e84f65;color:#fff;font-size:8px;font-weight:800;line-height:1}
 .notification-panel{position:absolute;right:0;top:calc(100% + 12px);display:flex;flex-direction:column;width:min(420px,calc(100vw - 28px));max-height:min(680px,calc(100vh - 96px));overflow:hidden;border:1px solid var(--theme-border, #e1e7f0);border-radius:14px;background:var(--theme-surface, #fff);box-shadow:0 24px 70px #1721392b,0 8px 20px #17213912;color:var(--ink);animation:notification-in .18s ease-out;transform-origin:top right}
 @keyframes notification-in{from{opacity:0;transform:translateY(-7px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
-.notification-panel>header{flex:0 0 auto;height:auto!important;min-height:74px;padding:17px 18px!important;border-bottom:1px solid var(--line);background:#fff}
+.notification-panel>header{flex:0 0 auto;height:auto!important;min-height:74px;padding:17px 18px!important;border-bottom:1px solid var(--line);background:var(--theme-surface, #fff)}
 .notification-panel h2{margin:0 0 4px;font-size:16px;letter-spacing:-.2px}
 .notification-panel header p{margin:0;color:var(--theme-muted, #7b879c);font-size:10px}
 .notification-close{display:grid!important;place-items:center!important;width:30px!important;height:30px!important;padding:0!important;border:0!important;border-radius:8px!important;background:var(--theme-surface, #f4f6f9)!important;color:var(--theme-muted, #67748b)!important;font-size:20px!important;line-height:1!important;cursor:pointer}
