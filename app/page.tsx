@@ -361,12 +361,14 @@ function Head({
 function Kpis({
   items,
   actions,
+  className = "",
 }: {
   items: string[][];
   actions?: Array<() => void>;
+  className?: string;
 }) {
   return (
-    <div className="kpi-grid">
+    <div className={["kpi-grid", className].filter(Boolean).join(" ")}>
       {items.map((x, i) => (
         <KpiCard
           key={x[0]}
@@ -436,12 +438,6 @@ function Vehicles({
     setStatus(s);
     setSortNew(false);
   };
-  const avgAge = all.length
-    ? Math.round(
-        all.reduce((sum, v) => sum + (new Date().getFullYear() - v.year), 0) /
-          all.length,
-      )
-    : 0;
   const vehicleKpis = [
     [
       "Ukupno vozila",
@@ -470,13 +466,6 @@ function Vehicles({
       "trenutno nedostupno",
       "",
       "red",
-    ],
-    [
-      "Prosečna starost",
-      all.length ? avgAge + " god." : "—",
-      "iz stvarnih godišta",
-      "",
-      "cyan",
     ],
     [
       "Lokacije",
@@ -516,16 +505,13 @@ function Vehicles({
         onAction={() => setShowAdd(true)}
       />
       <Kpis
+        className="vehicle-kpi-grid"
         items={vehicleKpis}
         actions={[
           () => setKpi("Svi statusi"),
           () => setKpi("Dostupno"),
           () => setKpi("Iznajmljeno"),
           () => setKpi("Na servisu"),
-          () => {
-            setStatus("Svi statusi");
-            setSortNew(true);
-          },
           () => setKpi("Svi statusi"),
         ]}
       />
