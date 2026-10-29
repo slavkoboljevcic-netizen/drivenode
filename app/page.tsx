@@ -142,10 +142,7 @@ const nav = [
   "Rezervacije",
   "Kalendar",
   "Klijenti",
-  "Servisi i registracije",
-  "Finansije",
-  "Dokumentacija",
-  "Izveštaji",
+  "Poslovanje",
   "Korisnici i dozvole",
 ];
 const routeByPage: Record<string, string> = {
@@ -154,10 +151,11 @@ const routeByPage: Record<string, string> = {
   Rezervacije: "/reservations",
   Kalendar: "/calendar",
   Klijenti: "/clients",
-  "Servisi i registracije": "/services",
-  Finansije: "/finance",
-  Dokumentacija: "/documents",
-  Izveštaji: "/reports",
+  "Servisi i registracije": "/vehicles/services",
+  Poslovanje: "/business/finance",
+  Finansije: "/business/finance",
+  Dokumentacija: "/business/documents",
+  Izveštaji: "/business/reports",
   "Korisnici i dozvole": "/users",
   Podešavanja: "/settings",
 };
@@ -171,20 +169,45 @@ const pageFromPath = (path: string) =>
         : path.startsWith("/clients")
           ? "Klijenti"
           : path.startsWith("/services")
-            ? "Servisi i registracije"
-            : path.startsWith("/finance")
-              ? "Finansije"
-              : path.startsWith("/documents")
-                ? "Dokumentacija"
-                : path.startsWith("/reports")
-                  ? "Izveštaji"
-                  : path.startsWith("/users")
-                    ? "Korisnici i dozvole"
-                    : path.startsWith("/settings")
-                      ? "Podešavanja"
-                      : "Pregled";
+            ? "Vozila"
+            : path.startsWith("/business") ||
+                path.startsWith("/finance") ||
+                path.startsWith("/documents") ||
+                path.startsWith("/reports")
+              ? "Poslovanje"
+              : path.startsWith("/users")
+                ? "Korisnici i dozvole"
+                : path.startsWith("/settings")
+                  ? "Podešavanja"
+                  : "Pregled";
 const vehicles: V[] = [];
 const bookings: B[] = [];
+type VehicleSectionView = "fleet" | "services";
+const vehicleSectionFromPath = (path: string): VehicleSectionView =>
+  path.startsWith("/services") || path.startsWith("/vehicles/services")
+    ? "services"
+    : "fleet";
+type BusinessSectionView = "finance" | "documents" | "reports";
+const businessSectionFromPath = (path: string): BusinessSectionView =>
+  path.startsWith("/documents") || path.startsWith("/business/documents")
+    ? "documents"
+    : path.startsWith("/reports") || path.startsWith("/business/reports")
+      ? "reports"
+      : "finance";
+const businessSectionForPage = (page: string): BusinessSectionView | null =>
+  page === "Dokumentacija"
+    ? "documents"
+    : page === "Izveštaji"
+      ? "reports"
+      : page === "Finansije" || page === "Poslovanje"
+        ? "finance"
+        : null;
+const pageForBusinessSection = (section: BusinessSectionView) =>
+  section === "documents"
+    ? "Dokumentacija"
+    : section === "reports"
+      ? "Izveštaji"
+      : "Finansije";
 const defaultCurrentUser = {
   initials: "AD",
   name: "Administrator",
@@ -329,7 +352,7 @@ function RowMenu({
               setShow(false);
               if (linked) {
                 alert(
-                  "Automatski trošak se menja ili briše u odeljku Servisi i registracije.",
+                  "Automatski trošak se menja ili briše na tabu Servisi i registracije u sekciji Vozila.",
                 );
                 return;
               }
@@ -383,14 +406,70 @@ function Kpis({
     </div>
   );
 }
+function VehicleSectionTabs({
+  active,
+  onChange,
+}: {
+  active: VehicleSectionView;
+  onChange: (view: VehicleSectionView) => void;
+}) {
+  return (
+    <div className="detail-tabs vehicle-section-tabs">
+      <Button
+        className={active === "fleet" ? "active" : ""}
+        onClick={() => onChange("fleet")}
+      >
+        Vozila
+      </Button>
+      <Button
+        className={active === "services" ? "active" : ""}
+        onClick={() => onChange("services")}
+      >
+        Servisi i registracije
+      </Button>
+    </div>
+  );
+}
+function BusinessSectionTabs({
+  active,
+  onChange,
+}: {
+  active: BusinessSectionView;
+  onChange: (view: BusinessSectionView) => void;
+}) {
+  return (
+    <div className="detail-tabs business-section-tabs">
+      <Button
+        className={active === "finance" ? "active" : ""}
+        onClick={() => onChange("finance")}
+      >
+        Finansije
+      </Button>
+      <Button
+        className={active === "documents" ? "active" : ""}
+        onClick={() => onChange("documents")}
+      >
+        Dokumentacija
+      </Button>
+      <Button
+        className={active === "reports" ? "active" : ""}
+        onClick={() => onChange("reports")}
+      >
+        Izveštaji
+      </Button>
+    </div>
+  );
+}
 function Vehicles({
   open,
   addTrigger = 0,
   onAddHandled,
+  onSectionChange,
 }: {
   open: (v: V) => void;
   addTrigger?: number;
   onAddHandled: () => void;
+  onSectionChange: (view: VehicleSectionView) => void;
 }) {
   const [q, setQ] = useState("");
   const { deleted } = useSoftDelete("vehicles");
@@ -504,6 +583,7 @@ function Vehicles({
         action="Dodaj vozilo"
         onAction={() => setShowAdd(true)}
       />
+      <VehicleSectionTabs active="fleet" onChange={onSectionChange} />
       <Kpis
         className="vehicle-kpi-grid"
         items={vehicleKpis}
@@ -2478,7 +2558,11 @@ function ClientPanel({
   );
 }
 const demoServices: S[] = [];
-function Services() {
+function Services({
+  onSectionChange,
+}: {
+  onSectionChange: (view: VehicleSectionView) => void;
+}) {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("services");
   const [status, setStatus] = useState("Svi statusi");
@@ -2572,6 +2656,7 @@ function Services() {
         action="Novi servis"
         onAction={() => setShowAdd(true)}
       />
+      <VehicleSectionTabs active="services" onChange={onSectionChange} />
       <Kpis
         items={serviceKpis}
         actions={[
@@ -3060,7 +3145,11 @@ function ServicePanel({
   );
 }
 const demoFinance: F[] = [];
-function Finance() {
+function Finance({
+  onSectionChange,
+}: {
+  onSectionChange: (view: BusinessSectionView) => void;
+}) {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("transactions");
   const [kind, setKind] = useState("Sve transakcije");
@@ -3165,6 +3254,7 @@ function Finance() {
         action="Nova transakcija"
         onAction={() => setShowAdd(true)}
       />
+      <BusinessSectionTabs active="finance" onChange={onSectionChange} />
       <Kpis
         items={financeKpis}
         actions={[
@@ -3592,7 +3682,7 @@ function TransactionPanel({
         {linked && (
           <div className="active-filter-note">
             Automatski povezano sa servisnim zapisom. Izmene izvršite u
-            odeljku Servisi i registracije.
+            tabu Servisi i registracije u sekciji Vozila.
           </div>
         )}
         <label className="status-control">
@@ -3623,7 +3713,11 @@ function TransactionPanel({
   );
 }
 const demoDocs: D[] = [];
-function Documents() {
+function Documents({
+  onSectionChange,
+}: {
+  onSectionChange: (view: BusinessSectionView) => void;
+}) {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("documents");
   const [folder, setFolder] = useState("Sve fascikle");
@@ -3655,6 +3749,7 @@ function Documents() {
         action="Otpremi dokument"
         onAction={() => setUpload(true)}
       />
+      <BusinessSectionTabs active="documents" onChange={onSectionChange} />
       <div className="doc-stats">
         <Button onClick={() => setFolder("Sve fascikle")}>
           <b>{all.length}</b>
@@ -4026,7 +4121,11 @@ function DocumentPanel({
     </DrawerFrame>
   );
 }
-function Reports() {
+function Reports({
+  onSectionChange,
+}: {
+  onSectionChange: (view: BusinessSectionView) => void;
+}) {
   const [period, setPeriod] = useState("Avgust 2026");
   const [location, setLocation] = useState("Sve poslovnice");
   const [metric, setMetric] = useState("Pregled");
@@ -4114,6 +4213,7 @@ function Reports() {
           </Button>
         </div>
       </div>
+      <BusinessSectionTabs active="reports" onChange={onSectionChange} />
       <Kpis
         items={[
           ["Iskorišćenost flote", "0%", "nema podataka", "—", "green"],
@@ -4921,15 +5021,43 @@ function App() {
   const [logged, setLogged] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [page, setPage] = useState("Pregled");
+  const [vehicleSection, setVehicleSection] =
+    useState<VehicleSectionView>("fleet");
+  const [businessSection, setBusinessSection] =
+    useState<BusinessSectionView>("finance");
   const currentUser = defaultCurrentUser;
   useEffect(() => {
     try {
       setLogged(localStorage.getItem("dnfm_logged_in") === "1");
       const routed = pageFromPath(location.pathname);
       const savedPage = localStorage.getItem("dnfm_current_page");
-      if (location.pathname !== "/") setPage(routed);
-      else if (savedPage && [...nav, "Podešavanja"].includes(savedPage))
+      if (location.pathname !== "/") {
+        setPage(routed);
+        setVehicleSection(vehicleSectionFromPath(location.pathname));
+        setBusinessSection(businessSectionFromPath(location.pathname));
+      } else if (savedPage === "Servisi i registracije") {
+        setPage("Vozila");
+        setVehicleSection("services");
+      } else if (savedPage && businessSectionForPage(savedPage)) {
+        setPage("Poslovanje");
+        setBusinessSection(
+          savedPage === "Poslovanje"
+            ? localStorage.getItem("dnfm_business_section") === "documents"
+              ? "documents"
+              : localStorage.getItem("dnfm_business_section") === "reports"
+                ? "reports"
+                : "finance"
+            : businessSectionForPage(savedPage)!,
+        );
+      } else if (savedPage && [...nav, "Podešavanja"].includes(savedPage)) {
         setPage(savedPage);
+        if (savedPage === "Vozila")
+          setVehicleSection(
+            localStorage.getItem("dnfm_vehicle_section") === "services"
+              ? "services"
+              : "fleet",
+          );
+      }
     } finally {
       setAuthReady(true);
     }
@@ -4937,6 +5065,14 @@ function App() {
   useEffect(() => {
     if (authReady && logged) localStorage.setItem("dnfm_current_page", page);
   }, [page, authReady, logged]);
+  useEffect(() => {
+    if (authReady && logged)
+      localStorage.setItem("dnfm_vehicle_section", vehicleSection);
+  }, [vehicleSection, authReady, logged]);
+  useEffect(() => {
+    if (authReady && logged)
+      localStorage.setItem("dnfm_business_section", businessSection);
+  }, [businessSection, authReady, logged]);
   const [v, setV] = useState<V | null>(null);
   const [b, setB] = useState<B | null>(null);
   const [newBooking, setNewBooking] = useState(false);
@@ -4951,6 +5087,8 @@ function App() {
   useEffect(() => {
     const onPop = () => {
       setPage(pageFromPath(location.pathname));
+      setVehicleSection(vehicleSectionFromPath(location.pathname));
+      setBusinessSection(businessSectionFromPath(location.pathname));
       setV(null);
       setB(null);
       setPathname(location.pathname);
@@ -4961,7 +5099,7 @@ function App() {
   useEffect(() => {
     if (!authReady || !logged) return;
     const parts = location.pathname.split("/").filter(Boolean);
-    if (parts[0] === "vehicles" && parts[1])
+    if (parts[0] === "vehicles" && parts[1] && parts[1] !== "services")
       fetch("/api/vehicles")
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
@@ -4997,28 +5135,50 @@ function App() {
   }, [authReady, logged, pathname]);
   const login = () => {
     localStorage.setItem("dnfm_logged_in", "1");
-    if (location.pathname === "/")
-      history.replaceState({}, "", routeByPage[page] || "/dashboard");
+    if (location.pathname === "/") {
+      const path =
+        page === "Vozila" && vehicleSection === "services"
+          ? routeByPage["Servisi i registracije"]
+          : page === "Poslovanje"
+            ? routeByPage[pageForBusinessSection(businessSection)]
+            : routeByPage[page] || "/dashboard";
+      history.replaceState({}, "", path);
+      setPathname(path);
+    }
     setLogged(true);
   };
   const logout = () => {
     localStorage.removeItem("dnfm_logged_in");
     localStorage.removeItem("dnfm_current_page");
+    localStorage.removeItem("dnfm_vehicle_section");
+    localStorage.removeItem("dnfm_business_section");
     history.replaceState({}, "", "/");
     setLogged(false);
   };
   if (!authReady) return null;
   if (!logged) return <Login on={login} />;
   const go = (x: string) => {
-    setPage(x);
+    const serviceSection = x === "Servisi i registracije";
+    const requestedBusinessSection = businessSectionForPage(x);
+    const targetPage = serviceSection
+      ? "Vozila"
+      : requestedBusinessSection
+        ? "Poslovanje"
+        : x;
+    setPage(targetPage);
+    if (targetPage === "Vozila")
+      setVehicleSection(serviceSection ? "services" : "fleet");
+    if (requestedBusinessSection)
+      setBusinessSection(requestedBusinessSection);
     setV(null);
     setB(null);
-    const path = routeByPage[x] || "/dashboard";
+    const path = routeByPage[x] || routeByPage[targetPage] || "/dashboard";
     if (location.pathname !== path) history.pushState({}, "", path);
     setPathname(path);
   };
   const openVehicle = (vehicle: V) => {
     setPage("Vozila");
+    setVehicleSection("fleet");
     setV(vehicle);
     setB(null);
     const path = "/vehicles/" + encodeURIComponent(vehicle.plate);
@@ -5027,6 +5187,7 @@ function App() {
   };
   const closeVehicle = () => {
     setV(null);
+    setVehicleSection("fleet");
     history.pushState({}, "", "/vehicles");
     setPathname("/vehicles");
   };
@@ -5044,7 +5205,13 @@ function App() {
     setPathname("/reservations");
   };
   const createBooking = () => {
-    setBookingReturnPage(page);
+    setBookingReturnPage(
+      page === "Vozila" && vehicleSection === "services"
+        ? "Servisi i registracije"
+        : page === "Poslovanje"
+          ? pageForBusinessSection(businessSection)
+          : page,
+    );
     setNewBooking(true);
   };
   const addVehicle = () => {
@@ -5070,11 +5237,22 @@ function App() {
   else
     c =
       page === "Vozila" ? (
-        <Vehicles
-          open={openVehicle}
-          addTrigger={vehicleAddTrigger}
-          onAddHandled={() => setVehicleAddTrigger(0)}
-        />
+        vehicleSection === "services" ? (
+          <Services
+            onSectionChange={(view) =>
+              go(view === "services" ? "Servisi i registracije" : "Vozila")
+            }
+          />
+        ) : (
+          <Vehicles
+            open={openVehicle}
+            addTrigger={vehicleAddTrigger}
+            onAddHandled={() => setVehicleAddTrigger(0)}
+            onSectionChange={(view) =>
+              go(view === "services" ? "Servisi i registracije" : "Vozila")
+            }
+          />
+        )
       ) : page === "Rezervacije" ? (
         <Reservations
           open={openReservation}
@@ -5092,14 +5270,20 @@ function App() {
         />
       ) : page === "Klijenti" ? (
         <Clients addTrigger={clientAddTrigger} />
-      ) : page.startsWith("Servisi") ? (
-        <Services />
-      ) : page === "Finansije" ? (
-        <Finance />
-      ) : page === "Dokumentacija" ? (
-        <Documents />
-      ) : page === "Izveštaji" ? (
-        <Reports />
+      ) : page === "Poslovanje" ? (
+        businessSection === "documents" ? (
+          <Documents
+            onSectionChange={(view) => go(pageForBusinessSection(view))}
+          />
+        ) : businessSection === "reports" ? (
+          <Reports
+            onSectionChange={(view) => go(pageForBusinessSection(view))}
+          />
+        ) : (
+          <Finance
+            onSectionChange={(view) => go(pageForBusinessSection(view))}
+          />
+        )
       ) : page.startsWith("Korisnici") ? (
         <Users />
       ) : page === "Podešavanja" ? (

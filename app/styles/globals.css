@@ -72,6 +72,10 @@
   border-bottom: 2px solid var(--theme-accent-3b71f3, #3b71f3);
   font-weight: 700;
 }
+.vehicle-section-tabs,
+.business-section-tabs {
+  margin: -8px 0 17px;
+}
 .vehicle-tab-panel {
   margin-top: 17px;
 }
