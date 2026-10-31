@@ -8,10 +8,11 @@ import { statusTone } from "../lib";
 type Tone = "blue" | "green" | "violet" | "amber" | "red" | "cyan";
 
 export function StatusBadge({ status }: { status?: string }) {
+  const label = status || "Nije određeno";
   return (
-    <span className={`badge ${statusTone(status)}`}>
+    <span className={`badge ${statusTone(status)}`} data-status={label}>
       <i />
-      {status || "Nije određeno"}
+      {label}
     </span>
   );
 }

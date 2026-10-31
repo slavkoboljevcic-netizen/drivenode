@@ -1,3 +1,78 @@
+html[data-theme="light"] {
+  color-scheme: light;
+
+  /* Core Light theme design tokens */
+  --ink: #111827;
+  --muted: #64748B;
+  --line: #E2E8F0;
+  --blue: #EA580C;
+  --sidebar: #FFFFFF;
+  --theme-canvas: #F8FAFC;
+  --theme-surface: #FFFFFF;
+  --theme-subtle: #F1F5F9;
+  --theme-text: #111827;
+  --theme-muted: #64748B;
+  --theme-border: #E2E8F0;
+
+  /* Drive Node brand and interaction states */
+  --theme-brand: #F97316;
+  --theme-action: #EA580C;
+  --theme-action-hover: #C2410C;
+  --theme-focus-ring: #EA580C2E;
+  --theme-hover: #F1F5F9;
+  --theme-selected: #FFF7ED;
+  --theme-positive: #15803D;
+  --theme-warning: #D97706;
+  --theme-danger: #DC2626;
+
+  /* Compatibility aliases used by existing components */
+  --theme-accent-1e40af3d: #C2410C26;
+  --theme-accent-244a8d99: #F9731666;
+  --theme-accent-2563eb45: #EA580C2E;
+  --theme-accent-2f64e8: #C2410C;
+  --theme-accent-3159a5: #F97316;
+  --theme-accent-3972ee: #EA580C;
+  --theme-accent-3b71f3: #EA580C;
+  --theme-accent-3b71f314: #EA580C14;
+  --theme-accent-3b71f31a: #EA580C2E;
+  --theme-accent-3b71f322: #F9731626;
+  --theme-accent-3b71f333: #EA580C26;
+  --theme-accent-3b71f340: #C2410C30;
+  --theme-accent-487bf1: #F97316;
+  --theme-accent-6190ff: #FB923C;
+  --theme-accent-7fa4ff: #FDBA74;
+  --theme-accent-8facf4: #FDBA74;
+  --theme-accent-91aff8: #FDBA74;
+  --theme-accent-9db6f5: #FB923C;
+  --theme-accent-a9bff5: #FDBA74;
+  --theme-accent-b7c6e5: #CBD5E1;
+  --theme-accent-b8c9f4: #FDBA74;
+  --theme-accent-cbd8f4: #FDBA74;
+  --theme-accent-d8e5ff: #FED7AA;
+  --theme-accent-dbe3f2: #E2E8F0;
+  --theme-accent-e3edff: #FFEDD5;
+  --theme-accent-edf3ff: #FFF7ED;
+  --theme-accent-f2f6ff: #FFEDD5;
+  --theme-accent-f3f6fc: #F1F5F9;
+  --theme-accent-f4f7fc: #F1F5F9;
+  --theme-accent-f4f7ff: #FFF7ED;
+  --theme-accent-f5f8ff: #FFF7ED;
+  --theme-accent-f7f9fc: #F8FAFC;
+  --theme-accent-f7f9fd: #F1F5F9;
+  --theme-accent-f8faff: #F8FAFC;
+  --theme-accent-fbfcfe: #F8FAFC;
+  --theme-accent-fbfcff: #FFFFFF;
+  --theme-accent-fbfdff: #FFFFFF;
+
+  /* Semantic surface tints */
+  --theme-tint-e3edff: #FFEDD5;
+  --theme-tint-eaf8f3: #F0FDF4;
+  --theme-tint-eaf8fa: #ECFEFF;
+  --theme-tint-eaf9f4: #F0FDF4;
+  --theme-tint-fff6e7: #FFFBEB;
+  --theme-tint-fff7e8: #FFFBEB;
+}
+
 html[data-theme="dark"] {
   color-scheme: dark;
   --ink: #FFFFFF;
@@ -55,6 +130,261 @@ html[data-theme="dark"] {
   --theme-tint-eaf9f4: color-mix(in srgb, #eaf9f4 12%, #1E1E1E);
   --theme-tint-fff6e7: color-mix(in srgb, #fff6e7 12%, #1E1E1E);
   --theme-tint-fff7e8: color-mix(in srgb, #fff7e8 12%, #1E1E1E);
+}
+
+/* Light-only component polish. Dark Mode intentionally has no overrides here. */
+html[data-theme="light"] body {
+  background: var(--theme-canvas);
+  color: var(--theme-text);
+}
+
+html[data-theme="light"] .sidebar button {
+  color: var(--theme-muted);
+}
+
+html[data-theme="light"] .sidebar button:hover {
+  background: var(--theme-hover);
+  color: var(--theme-text);
+}
+
+html[data-theme="light"] .sidebar button.active,
+html[data-theme="light"] .sidebar button.active:hover {
+  background: var(--theme-selected);
+  border-color: #FED7AA;
+  color: var(--theme-action);
+}
+
+html[data-theme="light"] .primary {
+  background: var(--theme-action);
+  box-shadow: 0 6px 16px #EA580C24;
+}
+
+html[data-theme="light"] .primary:hover:not(:disabled) {
+  background: var(--theme-action-hover);
+  box-shadow: 0 8px 20px #C2410C2B;
+}
+
+html[data-theme="light"] .outline,
+html[data-theme="light"] .theme-toggle {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+  color: var(--theme-text);
+}
+
+html[data-theme="light"] .outline:hover:not(:disabled),
+html[data-theme="light"] .theme-toggle:hover {
+  border-color: #CBD5E1;
+  background: var(--theme-hover);
+}
+
+html[data-theme="light"] .danger {
+  border: 1px solid #FECACA;
+  background: #FFFFFF;
+  color: var(--theme-danger);
+}
+
+html[data-theme="light"] .danger:hover:not(:disabled) {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+}
+
+html[data-theme="light"] .panel,
+html[data-theme="light"] .kpi,
+html[data-theme="light"] .detail-head,
+html[data-theme="light"] .doc-stats,
+html[data-theme="light"] .folder,
+html[data-theme="light"] .role-grid button,
+html[data-theme="light"] .home-welcome,
+html[data-theme="light"] .home-status {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+  box-shadow: 0 1px 2px #0F172A0A;
+}
+
+html[data-theme="light"] th {
+  background: #F8FAFC;
+  color: var(--theme-muted);
+  border-bottom-color: var(--theme-border);
+}
+
+html[data-theme="light"] td {
+  border-bottom-color: var(--theme-border);
+  color: var(--theme-muted);
+}
+
+html[data-theme="light"] tbody tr:hover {
+  background: #F8FAFC;
+}
+
+html[data-theme="light"] :is(
+  .add-vehicle .custom-input,
+  .add-vehicle textarea,
+  .reservation-form textarea,
+  .client-edit .custom-input,
+  .client-notes textarea,
+  .service-edit .custom-input,
+  .service-edit textarea,
+  .form-grid .custom-input,
+  .login-form label > .custom-input,
+  .custom-select__button,
+  .custom-date-picker__input
+) {
+  border-color: #CBD5E1;
+  background: #FFFFFF;
+  color: var(--theme-text);
+}
+
+html[data-theme="light"] :is(
+  .add-vehicle .custom-input,
+  .add-vehicle textarea,
+  .reservation-form textarea,
+  .client-edit .custom-input,
+  .client-notes textarea,
+  .service-edit .custom-input,
+  .service-edit textarea,
+  .form-grid .custom-input,
+  .login-form label > .custom-input,
+  .custom-date-picker__input
+)::placeholder {
+  color: var(--theme-muted);
+}
+
+html[data-theme="light"] :is(
+  .add-vehicle .custom-input:focus,
+  .add-vehicle textarea:focus,
+  .reservation-form textarea:focus,
+  .client-edit .custom-input:focus,
+  .client-notes textarea:focus,
+  .service-edit .custom-input:focus,
+  .service-edit textarea:focus,
+  .form-grid .custom-input:focus,
+  .login-form label > .custom-input:focus,
+  .custom-select.open .custom-select__button,
+  .custom-select__button:focus-visible,
+  .custom-date-picker.open .custom-date-picker__input,
+  .custom-date-picker__input:focus
+) {
+  border-color: var(--theme-action);
+  box-shadow: 0 0 0 3px var(--theme-focus-ring);
+}
+
+html[data-theme="light"] :is(
+  .custom-select.disabled .custom-select__button,
+  .custom-date-picker__input:disabled,
+  .add-vehicle .custom-input:disabled,
+  .client-edit .custom-input:disabled,
+  .service-edit .custom-input:disabled,
+  .form-grid .custom-input:disabled
+) {
+  background: var(--theme-hover);
+  color: #94A3B8;
+}
+
+html[data-theme="light"] .custom-select__menu,
+html[data-theme="light"] .custom-date-picker__panel,
+html[data-theme="light"] .search-results,
+html[data-theme="light"] .row-menu-pop,
+html[data-theme="light"] .notification-panel {
+  border-color: var(--theme-border);
+  background: var(--theme-surface);
+  box-shadow: 0 14px 36px #0F172A1A;
+}
+
+html[data-theme="light"] .green,
+html[data-theme="light"] .income {
+  color: var(--theme-positive) !important;
+}
+
+html[data-theme="light"] .amber {
+  color: var(--theme-warning) !important;
+}
+
+html[data-theme="light"] .red,
+html[data-theme="light"] .expense,
+html[data-theme="light"] .form-error,
+html[data-theme="light"] .notification-state.error {
+  color: var(--theme-danger) !important;
+}
+
+html[data-theme="light"] .badge.green,
+html[data-theme="light"] .kpi-icon.green {
+  background: #F0FDF4;
+}
+
+html[data-theme="light"] .badge.amber,
+html[data-theme="light"] .kpi-icon.amber {
+  background: #FFFBEB;
+}
+
+html[data-theme="light"] .badge.red,
+html[data-theme="light"] .kpi-icon.red,
+html[data-theme="light"] .calendar-event.red,
+html[data-theme="light"] .calendar-grid button.red,
+html[data-theme="light"] .form-error {
+  background: #FEF2F2;
+}
+
+html[data-theme="light"] .badge.violet,
+html[data-theme="light"] .kpi-icon.violet,
+html[data-theme="light"] .calendar-event.violet,
+html[data-theme="light"] .calendar-grid button.violet {
+  background: #F5F3FF;
+}
+
+html[data-theme="light"] .kpi-icon.cyan {
+  background: #ECFEFF;
+}
+
+html[data-theme="light"] .badge[data-status*="Dostupno"],
+html[data-theme="light"] .badge[data-status*="Aktiv"],
+html[data-theme="light"] .badge[data-status*="Plaćeno"],
+html[data-theme="light"] .badge[data-status*="Iznajmljeno"],
+html[data-theme="light"] .badge[data-status*="U toku"] {
+  background: #F0FDF4;
+  color: var(--theme-positive) !important;
+}
+
+html[data-theme="light"] .badge[data-status*="čekanju" i],
+html[data-theme="light"] .badge[data-status*="Potvr"],
+html[data-theme="light"] .badge[data-status*="Rezervisano"],
+html[data-theme="light"] .badge[data-status*="Planirano"],
+html[data-theme="light"] .badge[data-status*="Uskoro"],
+html[data-theme="light"] .badge[data-status*="Povrat"] {
+  background: #FFFBEB;
+  color: var(--theme-warning) !important;
+}
+
+html[data-theme="light"] .badge[data-status*="Zavr"] {
+  background: #F1F5F9;
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .badge[data-status*="Otkaz"] {
+  background: #FEF2F2;
+  color: var(--theme-danger) !important;
+}
+
+html[data-theme="light"] .badge[data-status*="servis" i] {
+  background: var(--theme-selected);
+  color: var(--theme-action-hover) !important;
+}
+
+html[data-theme="light"] .notification-item.warning .notification-kind {
+  background: #FFFBEB;
+  color: var(--theme-warning);
+}
+
+html[data-theme="light"] .notification-item.critical .notification-kind {
+  background: #FEF2F2;
+  color: var(--theme-danger);
+}
+
+html[data-theme="light"] .row-menu-pop button.danger {
+  color: var(--theme-danger);
+}
+
+html[data-theme="light"] .row-menu-pop button.danger:hover {
+  background: #FEF2F2;
 }
 
 .theme-toggle {
