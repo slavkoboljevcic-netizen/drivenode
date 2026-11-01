@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import "../styles/dashboard-live.css";
-import { bookingDate } from "../lib";
+import { bookingDate, displayPlate } from "../lib";
 import Button from "./Button";
 import {
   AddIcon,
@@ -17,8 +17,10 @@ import { EmptyState, KpiCard, onKeyboardAction } from "./ui";
 
 type Booking = {
   id: string;
+  vehicleId: number | null;
   client: string;
   vehicle: string;
+  vehiclePlate: string;
   from: string;
   to: string;
   price: string;
@@ -44,8 +46,10 @@ type Overview = {
   };
   todayReservations: Array<{
     code: string;
+    vehicleId: number | null;
     client: string;
     vehicle: string;
+    vehiclePlate: string;
     startsAt: string;
     endsAt: string;
     price: number;
@@ -135,8 +139,10 @@ export default function DashboardLive({
     () =>
       data.todayReservations.map((row) => ({
         id: row.code,
+        vehicleId: row.vehicleId,
         client: row.client,
         vehicle: row.vehicle,
+        vehiclePlate: row.vehiclePlate,
         from: bookingDate(row.startsAt),
         to: bookingDate(row.endsAt),
         price: rsd(row.price),
@@ -353,7 +359,12 @@ export default function DashboardLive({
               </div>
               <div>
                 <strong>{booking.client}</strong>
-                <small>{booking.vehicle}</small>
+                <small>
+                  {booking.vehicle}
+                  {booking.vehiclePlate
+                    ? ` • ${displayPlate(booking.vehiclePlate)}`
+                    : ""}
+                </small>
               </div>
               <span className={`badge ${badgeTone(booking.status)}`}>
                 <i />

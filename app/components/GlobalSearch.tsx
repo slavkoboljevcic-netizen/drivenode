@@ -7,6 +7,7 @@ import CustomInput from "./CustomInput";
 import { SearchIcon } from "./icons";
 
 type Vehicle = {
+  id: number;
   name: string;
   plate: string;
   year: number;
@@ -17,11 +18,14 @@ type Vehicle = {
   vin: string;
   fuel: string;
   transmission: string;
+  registered: boolean;
 };
 type Booking = {
   id: string;
+  vehicleId: number | null;
   client: string;
   vehicle: string;
+  vehiclePlate: string;
   from: string;
   to: string;
   price: string;
@@ -93,6 +97,7 @@ export default function GlobalSearch({
     if (result.type === "vehicle") {
       const row = result.data;
       openVehicle({
+        id: Number(row.id),
         name: String(row.name),
         plate: String(row.plate),
         year: Number(row.year),
@@ -103,13 +108,16 @@ export default function GlobalSearch({
         vin: String(row.vin || ""),
         fuel: String(row.fuel || ""),
         transmission: String(row.transmission || ""),
+        registered: row.registered !== false,
       });
     } else if (result.type === "reservation") {
       const row = result.data;
       openBooking({
         id: String(row.code),
+        vehicleId: Number(row.vehicleId) || null,
         client: String(row.client),
         vehicle: String(row.vehicle),
+        vehiclePlate: String(row.vehiclePlate || ""),
         from: bookingDate(String(row.startsAt)),
         to: bookingDate(String(row.endsAt)),
         price: `${Number(row.price).toLocaleString("sr-RS")} RSD`,

@@ -726,9 +726,6 @@
   .calendar-grid > div {
     min-height: 75px;
   }
-  .legend {
-    display: none;
-  }
   .folder-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -1027,6 +1024,9 @@
   margin: 9px 0;
 }
 .doc-row {
+  align-items: center;
+  display: flex;
+  gap: 6px;
   width: 100%;
   border: 1px solid var(--line);
   background: var(--theme-surface, #fff);
@@ -1037,7 +1037,11 @@
   font-size: 13px;
 }
 .doc-row span {
+  align-items: center;
   color: var(--theme-accent-3b71f3, #3b71f3);
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
 }
 .status-control {
   display: block;
@@ -1078,10 +1082,6 @@
   background: var(--theme-surface, #fff);
   color: var(--theme-accent-3b71f3, #3b71f3);
   box-shadow: 0 1px 4px #15213c22;
-}
-.legend {
-  display: flex;
-  gap: 5px;
 }
 .calendar {
   padding: 0;
@@ -1794,16 +1794,20 @@ button:disabled,
 .brand-mark {
   display: grid;
   place-items: center;
-  background: var(--theme-accent-2f64e8, #2f64e8);
-  box-shadow:
-    inset 0 1px 0 #ffffff40,
-    0 12px 28px var(--theme-accent-2563eb45, #2563eb45);
-  font-size: 20px;
+  background-color: #2a2a2a;
+  background-image: url("/drivenode-logo.png");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 200%;
+  border: 1px solid #ffffff2e;
+  box-shadow: 0 10px 24px #00000055;
+  color: transparent;
+  font-size: 0;
   font-weight: 800;
   width: 38px;
   height: 38px;
   border-radius: 11px;
-  color: #fff;
+  overflow: hidden;
 }
 .brand b {
   display: block;
@@ -2335,27 +2339,6 @@ button.kpi {
   margin: auto;
   text-align: center;
 }
-.chart {
-  height: 139px;
-  position: relative;
-  margin-top: 8px;
-  border-bottom: 1px solid var(--theme-border, #edf0f5);
-}
-.bars {
-  position: absolute;
-  inset: 8px 6px 0;
-  display: flex;
-  align-items: flex-end;
-  gap: calc((100% - 112px) / 15);
-}
-.bars i {
-  display: block;
-  flex: 1;
-  max-width: 12px;
-  background: linear-gradient(var(--theme-accent-487bf1, #487bf1), var(--theme-accent-91aff8, #91aff8));
-  border-radius: 4px 4px 0 0;
-  opacity: 0.9;
-}
 .chart-labels {
   position: absolute;
   left: 0;
@@ -2618,20 +2601,6 @@ button svg {
 .notice span svg {
   height: 14px;
   width: 14px;
-}
-
-.doc-row {
-  align-items: center;
-  display: flex;
-  gap: 6px;
-}
-
-.doc-row span {
-  align-items: center;
-  display: inline-flex;
-  float: none;
-  gap: 4px;
-  margin-left: auto;
 }
 
 .trip-icon {

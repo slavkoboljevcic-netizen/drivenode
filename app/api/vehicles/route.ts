@@ -1,5 +1,5 @@
 import { clean } from "../../lib";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { vehicles } from "../../../db/schema";
 
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
+    const id = Number(body.id);
     const originalPlate = clean(body.originalPlate);
     const name = clean(body.name);
     let plate = clean(body.plate);
@@ -66,15 +67,28 @@ export async function PATCH(request: Request) {
     if (!registered && !plate) plate = originalPlate || makeInternalPlate();
     const year = Number(body.year);
     const km = Number(body.km);
-    if (!originalPlate || !name || (registered && !plate) || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+    if (!Number.isInteger(id) || id < 1 || !name || (registered && !plate) || !location || !status || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
       return Response.json({ error: "Popunite sva polja ispravnim podacima." }, { status: 400 });
     }
     const db = getDb();
-    const existing = await db.select({ id: vehicles.id }).from(vehicles).where(eq(vehicles.plate, originalPlate)).limit(1);
+    const duplicate = await db
+      .select({ id: vehicles.id })
+      .from(vehicles)
+      .where(
+        and(
+          sql`lower(${vehicles.plate}) = lower(${plate})`,
+          ne(vehicles.id, id),
+        ),
+      )
+      .limit(1);
+    if (duplicate.length) return Response.json({ error: "Vozilo sa ovim tablicama već postoji." }, { status: 409 });
     const values = { name, plate, year, km: Math.round(km), location, status, service, vin, fuel, transmission, registered };
-    const [vehicle] = existing.length
-      ? await db.update(vehicles).set(values).where(eq(vehicles.plate, originalPlate)).returning()
-      : await db.insert(vehicles).values(values).returning();
+    const [vehicle] = await db
+      .update(vehicles)
+      .set(values)
+      .where(eq(vehicles.id, id))
+      .returning();
+    if (!vehicle) return Response.json({ error: "Vozilo nije pronađeno." }, { status: 404 });
     return Response.json({ vehicle });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Vozilo nije izmenjeno.";
@@ -85,10 +99,10 @@ export async function PATCH(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const plate = clean(new URL(request.url).searchParams.get("plate"));
-    if (!plate) return Response.json({ error: "Nedostaje vozilo." }, { status: 400 });
-    const deleted = await getDb().delete(vehicles).where(eq(vehicles.plate, plate)).returning({ plate: vehicles.plate });
+    const id = Number(new URL(request.url).searchParams.get("id"));
+    if (!Number.isInteger(id) || id < 1) return Response.json({ error: "Nedostaje vozilo." }, { status: 400 });
+    const deleted = await getDb().delete(vehicles).where(eq(vehicles.id, id)).returning({ id: vehicles.id });
     if (!deleted.length) return Response.json({ error: "Vozilo nije pronađeno." }, { status: 404 });
-    return Response.json({ deleted: true, plate });
+    return Response.json({ deleted: true, id });
   } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Vozilo nije obrisano." }, { status: 500 }); }
 }

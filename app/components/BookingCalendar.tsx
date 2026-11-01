@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatDate, statusTone } from "../lib";
+import { displayPlate, formatDate, statusTone } from "../lib";
 import Button from "./Button";
 import CustomSelect from "./CustomSelect";
 import {
@@ -11,10 +11,12 @@ import {
 } from "./icons";
 import { StatusBadge, PageHeader, onKeyboardAction } from "./ui";
 
-export type CalendarBooking = {
+type CalendarBooking = {
   id: string;
+  vehicleId: number | null;
   client: string;
   vehicle: string;
+  vehiclePlate: string;
   from: string;
   to: string;
   price: string;
@@ -65,16 +67,20 @@ export default function BookingCalendar({
           (data.reservations || []).map(
             (reservation: {
               code: string;
+              vehicleId: number | null;
               client: string;
               vehicle: string;
+              vehiclePlate: string;
               startsAt: string;
               endsAt: string;
               price: number;
               status: string;
             }) => ({
               id: reservation.code,
+              vehicleId: reservation.vehicleId,
               client: reservation.client,
               vehicle: reservation.vehicle,
+              vehiclePlate: reservation.vehiclePlate,
               from: formatDate(reservation.startsAt),
               to: formatDate(reservation.endsAt),
               price: `${Number(reservation.price).toLocaleString("sr-RS")} RSD`,
@@ -148,7 +154,8 @@ export default function BookingCalendar({
       }}
     >
       <b>{booking.from.split("•")[1] || "09:00"}</b>{" "}
-      {booking.vehicle.replace("Volkswagen ", "")} •{" "}
+      {booking.vehicle.replace("Volkswagen ", "")}
+      {booking.vehiclePlate ? ` (${displayPlate(booking.vehiclePlate)})` : ""} •{" "}
       {booking.client.split(" ")[0]}
     </Button>
   );

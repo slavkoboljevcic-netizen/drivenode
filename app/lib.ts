@@ -19,6 +19,31 @@ export const bookingDate = (value: string) => {
   return `${date.toLocaleDateString("sr-Latn-RS")} • ${date.toLocaleTimeString("sr-Latn-RS", { hour: "2-digit", minute: "2-digit" })}`;
 };
 
+const NON_BLOCKING_RESERVATION_STATUSES = new Set(["Završena", "Otkazana"]);
+
+export const reservationBlocksVehicle = (status: string) =>
+  !NON_BLOCKING_RESERVATION_STATUSES.has(status);
+
+export const reservationPeriodsOverlap = (
+  firstStart: string,
+  firstEnd: string,
+  secondStart: string,
+  secondEnd: string,
+) => {
+  const firstStartTime = new Date(firstStart).getTime();
+  const firstEndTime = new Date(firstEnd).getTime();
+  const secondStartTime = new Date(secondStart).getTime();
+  const secondEndTime = new Date(secondEnd).getTime();
+
+  return (
+    [firstStartTime, firstEndTime, secondStartTime, secondEndTime].every(
+      Number.isFinite,
+    ) &&
+    firstStartTime < secondEndTime &&
+    firstEndTime > secondStartTime
+  );
+};
+
 export const statusTone = (status = "") =>
   status.includes("Dostupno") ||
   status.includes("Plaćeno") ||

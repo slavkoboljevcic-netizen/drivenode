@@ -1,40 +1,41 @@
-# vinext-starter
+# DNFM — Drive Node Fleet Management
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+DNFM je aplikacija za upravljanje rent-a-car flotom. Obuhvata vozila i njihove
+profile, rezervacije, klijente, servise, registracije, finansije, dokumentaciju,
+izveštaje, korisnike i obaveštenja. Aplikacija koristi vinext, React, Cloudflare
+Workers, D1, R2 i Drizzle ORM.
 
-## Prerequisites
+## Preduslovi
 
 - Node.js `>=22.13.0`
+- instalirane zavisnosti iz `package-lock.json`
 
-## Quick Start
+## Lokalni razvoj
 
 ```bash
 npm install
 npm run dev
-npm run build
 ```
 
-This starter does not use `wrangler.jsonc`.
+Razvojni server je dostupan na `http://localhost:3000`.
 
-## Included Shape
+## Provere
 
-- edit site code under `app/`
-- `hosting.config.json` declares optional D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
+```bash
+npm run lint
+npm test
+```
 
-## Useful Commands
+`npm test` pokreće produkcioni build i postojeće Node testove.
 
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
+## Baza i skladište
 
-## Learn More
+- D1 šema je definisana u `db/schema.ts`.
+- SQL migracije se nalaze u `drizzle/`.
+- `npm run db:generate` generiše novu Drizzle migraciju nakon promene šeme.
+- D1 i R2 binding nazivi definisani su u `hosting.config.json`.
+- Worker ulazna tačka i bezbedna runtime inicijalizacija baze nalaze se u
+  `worker/index.ts`.
 
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+Ne menjati postojeće migracije nakon što su primenjene. Za svaku novu promenu
+šeme dodati novu migraciju.

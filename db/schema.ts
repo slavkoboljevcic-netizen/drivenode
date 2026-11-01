@@ -1,9 +1,4 @@
-import {
-  integer,
-  sqliteTable,
-  text,
-  uniqueIndex,
-} from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
 export const vehicles = sqliteTable(
@@ -20,7 +15,9 @@ export const vehicles = sqliteTable(
     vin: text("vin").notNull().default(""),
     fuel: text("fuel").notNull().default(""),
     transmission: text("transmission").notNull().default(""),
-    registered: integer("is_registered", { mode: "boolean" }).notNull().default(true),
+    registered: integer("is_registered", { mode: "boolean" })
+      .notNull()
+      .default(true),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -33,6 +30,7 @@ export const reservations = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
+    vehicleId: integer("vehicle_id"),
     client: text("client").notNull(),
     vehicle: text("vehicle").notNull(),
     startsAt: text("starts_at").notNull(),
@@ -44,7 +42,10 @@ export const reservations = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_reservations_code").on(table.code)],
+  (table) => [
+    uniqueIndex("idx_reservations_code").on(table.code),
+    index("idx_reservations_vehicle_id").on(table.vehicleId),
+  ],
 );
 
 export const clients = sqliteTable(
@@ -71,6 +72,7 @@ export const serviceRecords = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
+    vehicleId: integer("vehicle_id"),
     vehicle: text("vehicle").notNull(),
     plate: text("plate").notNull(),
     type: text("type").notNull(),
@@ -84,7 +86,10 @@ export const serviceRecords = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_service_records_code").on(table.code)],
+  (table) => [
+    uniqueIndex("idx_service_records_code").on(table.code),
+    index("idx_service_records_vehicle_id").on(table.vehicleId),
+  ],
 );
 
 export const transactions = sqliteTable(
@@ -92,6 +97,7 @@ export const transactions = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     reference: text("reference").notNull(),
+    vehicleId: integer("vehicle_id"),
     description: text("description").notNull(),
     category: text("category").notNull(),
     kind: text("kind").notNull(),
@@ -105,7 +111,10 @@ export const transactions = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_transactions_reference").on(table.reference)],
+  (table) => [
+    uniqueIndex("idx_transactions_reference").on(table.reference),
+    index("idx_transactions_vehicle_id").on(table.vehicleId),
+  ],
 );
 
 export const documents = sqliteTable(
@@ -113,6 +122,7 @@ export const documents = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
+    vehicleId: integer("vehicle_id"),
     folder: text("folder").notNull(),
     linkedTo: text("linked_to").notNull().default(""),
     uploadedBy: text("uploaded_by").notNull().default("Marko Nikolić"),
@@ -124,7 +134,10 @@ export const documents = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_documents_storage_key").on(table.storageKey)],
+  (table) => [
+    uniqueIndex("idx_documents_storage_key").on(table.storageKey),
+    index("idx_documents_vehicle_id").on(table.vehicleId),
+  ],
 );
 
 export const teamUsers = sqliteTable(
@@ -169,6 +182,7 @@ export const vehicleDamages = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
+    vehicleId: integer("vehicle_id"),
     vehicle: text("vehicle").notNull(),
     plate: text("plate").notNull(),
     description: text("description").notNull(),
@@ -180,5 +194,8 @@ export const vehicleDamages = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_vehicle_damages_code").on(table.code)],
+  (table) => [
+    uniqueIndex("idx_vehicle_damages_code").on(table.code),
+    index("idx_vehicle_damages_vehicle_id").on(table.vehicleId),
+  ],
 );

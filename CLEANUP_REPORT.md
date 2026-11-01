@@ -1,6 +1,6 @@
 # DNFM — izveštaj o konzervativnom čišćenju
 
-Datum: 12. oktobar 2026.
+Datum poslednje provere: 1. novembar 2026.
 
 Pregledani su izvori aplikacije, komponente, svih 12 API modula, CSS,
 javni asset-i, database schema, migracije i njihovi metapodaci, primeri,
@@ -14,6 +14,13 @@ Generisani build izlazi i node_modules nisu tretirani kao kod za brisanje.
 | `public/drivenode-mark.svg` | Napuštena vektorska verzija logotipa iz prethodne izmene. Aplikacija koristi `drivenode-logo.png`. Nema reference na SVG u izvorima, CSS-u, konfiguracijama, testovima, dokumentaciji ili skriptama. |
 | `public/window.svg` | Starter ikonica bez reference u projektu. Ne koristi je ni metadata/favikon niti CSS. |
 | `app/styles/global-search.css` | Dva aktivna pravila preneta su u postojeći blok stilova pretrage u `globals.css`; uklonjen je stari CSS import. |
+| `examples/d1/app/api/notes/route.ts` | Neaktivna vinext starter ruta. Nije deo `app/` routera, build skripti, konfiguracije niti DNFM funkcionalnosti. |
+| `examples/d1/db/schema.ts` | Šema korišćena isključivo iz obrisanog starter primera; nema DNFM import niti indirektnu runtime referencu. |
+| `app/styles/brand-logo.css` | Jedini selektor je spojen sa postojećim `.brand-mark` blokom u `globals.css`; uklonjen je dodatni CSS import i preklapanje deklaracija. |
+| `next.config.ts` | Prazna starter konfiguracija bez aktivne opcije. Vinext koristi identične podrazumevane vrednosti kada fajl ne postoji. |
+
+Uklonjeni su i ignorisani macOS `.DS_Store` metadata fajlovi iz izvornog i
+generisanog stabla. Oni nisu bili praćeni Git-om i ne sadrže kod.
 
 Pre brisanja proverene su reference kroz projekat, statički i dinamički
 import-i, framework ulazne tačke i rute, CSS URL-ovi, konfiguracije,
@@ -29,8 +36,8 @@ Nije pronađeno posredno ni environment-dependent korišćenje obrisanih asset-a
 - Dve identične komponente statusne oznake objedinjene su kao `StatusBadge`
   u postojećem `app/components/ui.tsx`.
 
-Obrisana su tri fajla i dodat jedan izvorni fajl: dva manje u codebase-u.
-Ovaj izveštaj je dodatni dokument. Ostali mali fajlovi zadržani su jer
+Ukupno je uklonjeno sedam potvrđeno nekorišćenih ili potpuno redundantnih fajlova.
+Ostali mali fajlovi zadržani su jer
 njihova modularnost ima smisla; nisu spajani samo radi manjeg broja fajlova.
 
 ## UKLONJENI DUPLIKATI
@@ -58,6 +65,14 @@ njihova modularnost ima smisla; nisu spajani samo radi manjeg broja fajlova.
   Iz grupisanog pravila uklonjen je samo `.calendar-tools button`;
   `.toolbar button` je sačuvan.
 - Neiskorišćena promenljiva tamne teme `--theme-accent-4b7df433`.
+- Neiskorišćena Light theme promenljiva `--theme-brand`.
+- Neiskorišćeni theme aliasi `--theme-accent-2563eb45`,
+  `--theme-accent-487bf1` i `--theme-accent-91aff8` iz obe teme.
+- Stari CSS selektori `.chart`, `.bars` i `.legend`, uključujući responsive
+  pravilo, nakon potvrde da ih nijedna komponenta više ne generiše.
+- Uklonjen je nepotreban javni izvoz internog tipa `CalendarBooking`.
+- Uklonjena je `Head` komponenta-posrednik koja je samo preimenovala propove i
+  prosleđivala ih postojećoj `PageHeader` komponenti; osam poziva sada ide direktno.
 - Stari zakomentarisani primer `imageConfig` u Worker-u. Aktivni endpoint
   optimizacije slika ostao je neizmenjen.
 
@@ -74,12 +89,14 @@ zadržani su zbog posrednog korišćenja kroz vinext.
 Tailwind i njegov PostCSS plugin zadržani su zbog CSS import-a i konfiguracije.
 `package.json` i `package-lock.json` ostali su neizmenjeni.
 
+`npm prune --ignore-scripts` uklonio je lokalni extraneous paket
+`@openai/sites-vite-plugin`. Paket nije bio naveden u `package.json` ni u
+`package-lock.json`, pa ovo nije promena deklarisanih zavisnosti projekta.
+
 ## SUMNJIVI FAJLOVI — ZADRŽANI
 
-- `examples/d1/app/api/notes/route.ts` i `examples/d1/db/schema.ts`:
-  nisu aktivne DNFM rute, ali README dokumentuje opcionu upotrebu primera.
-- `next.config.ts` i `next-env.d.ts`: framework konfiguracija i TypeScript
-  ulaz; izostanak eksplicitnog application import-a nije dokaz nekorišćenja.
+- `next-env.d.ts`: framework TypeScript ulaz koji vinext generiše i koristi
+  indirektno.
 - `DNFM-Beta.code-workspace`: razvojna konfiguracija koju editor koristi
   van import grafa aplikacije.
 - Drizzle migracije i snapshot-i: deploy i generator ih koriste posredno.
@@ -95,9 +112,9 @@ ulazne tačke. Logo PNG, OG slika, favikon i Montserrat imaju aktivne reference.
 | --- | --- | --- |
 | `npm run lint` | Prolazi | Prolazi |
 | Production build (`npm run build`, kroz `npm run test`) | Prolazi | Prolazi |
-| Postojeći testovi | 1 prolazi, 1 pada zbog nedostajućeg D1 test binding-a | Oba prolaze |
+| Postojeći testovi | 1 prolazi, 1 pada zbog nedostajućeg D1 test binding-a | Sva 3 prolaze |
 | Test granica zajedničkih helper-a | Nije postojao | Prolazi |
-| `npx tsc --noEmit --noUnusedLocals --noUnusedParameters` | 7 postojećih grešaka | Istih 7 grešaka; bez novih |
+| `npx tsc --noEmit --noUnusedLocals --noUnusedParameters` | Postojeće Cloudflare type greške | Istih 5 grešaka; bez unused nalaza |
 | `git diff --check` | — | Prolazi |
 
 Test renderovanja dobio je izolovan D1 mock za startup kreiranje schema-e;
@@ -116,12 +133,10 @@ ove automatizovane provere ne pokrivaju.
 ## DODATNE PREPORUKE
 
 - Posebno rešiti postojeće TypeScript greške: nedostaju Cloudflare runtime
-  deklaracije (`cloudflare:workers`, `R2Bucket`, `Fetcher`, `D1Database`),
-  Worker callback zbog toga ima implicitni `any`, a tip vozila pretrage nema
-  `registered` koji zahteva glavni prikaz. Nisu menjani u ovom čišćenju.
+  deklaracije (`cloudflare:workers`, `R2Bucket`, `Fetcher`, `D1Database`).
+  Vinext produkcioni build ih obezbeđuje, ali samostalni `tsc --noEmit` zbog
+  toga i dalje ne prolazi.
 - `app/page.tsx` ima preko 5.000 linija. Izdvajanje modula može poboljšati
   održavanje, ali bi povećalo broj fajlova i zahtevalo posebnu regresionu proveru.
-- README i opcionu starter dokumentaciju ažurirati u zasebnoj izmeni;
-  nisu obrisani samo zato što trenutno nisu deo runtime-a.
 - Proširiti integracione testove glavnih korisničkih tokova uz izolovane
   D1/R2 podatke pre većeg preuređivanja API-ja ili UI modula.

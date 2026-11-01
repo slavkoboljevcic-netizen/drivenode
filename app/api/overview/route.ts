@@ -27,11 +27,17 @@ export async function GET() {
     const activeClients = clientRows.filter((row) => !deleted.get("clients")?.has(row.email));
     const activeServices = serviceRows.filter((row) => !deleted.get("services")?.has(row.code));
     const activeTransactions = transactionRows.filter((row) => !deleted.get("transactions")?.has(row.reference));
+    const vehiclesById = new Map(activeVehicles.map((row) => [row.id, row]));
 
     const now = new Date();
     const today = dayKey(now);
     const month = today.slice(0, 7);
-    const todayReservations = activeReservations.filter((row) => dayKey(row.startsAt) === today || dayKey(row.endsAt) === today);
+    const todayReservations = activeReservations
+      .filter((row) => dayKey(row.startsAt) === today || dayKey(row.endsAt) === today)
+      .map((row) => {
+        const linkedVehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined;
+        return { ...row, vehicle: linkedVehicle?.name || row.vehicle, vehiclePlate: linkedVehicle?.plate || "" };
+      });
     const activeRentalCount = activeReservations.filter((row) => ["Aktivna", "Povrat danas"].includes(row.status)).length;
     const todayRevenue = activeTransactions.filter((row) => row.kind === "Prihod" && row.status === "Plaćeno" && row.date === today).reduce((sum, row) => sum + row.amount, 0);
     const monthRevenue = activeTransactions.filter((row) => row.kind === "Prihod" && row.status === "Plaćeno" && row.date.startsWith(month)).reduce((sum, row) => sum + row.amount, 0);
@@ -42,10 +48,10 @@ export async function GET() {
     const utilization = activeVehicles.length ? Math.round((activeRentalCount / activeVehicles.length) * 100) : 0;
 
     const activities = [
-      ...activeReservations.map((row) => ({ id: row.code, kind: "reservation", title: `Rezervacija ${row.code}`, detail: `${row.client} • ${row.vehicle}`, at: row.createdAt, status: row.status })),
-      ...activeVehicles.map((row) => ({ id: row.plate, kind: "vehicle", title: "Dodato vozilo", detail: `${row.name} • ${row.plate}`, at: row.createdAt, status: row.status })),
+      ...activeReservations.map((row) => { const vehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined; return { id: row.code, kind: "reservation", title: `Rezervacija ${row.code}`, detail: `${row.client} • ${vehicle?.name || row.vehicle}${vehicle?.plate ? ` • ${vehicle.plate}` : ""}`, at: row.createdAt, status: row.status }; }),
+      ...activeVehicles.map((row) => ({ id: String(row.id), kind: "vehicle", title: "Dodato vozilo", detail: `${row.name} • ${row.plate}`, at: row.createdAt, status: row.status })),
       ...activeClients.map((row) => ({ id: row.email, kind: "client", title: "Dodat klijent", detail: row.name, at: row.createdAt, status: row.status })),
-      ...activeServices.map((row) => ({ id: row.code, kind: "service", title: row.type, detail: `${row.vehicle} • ${row.plate}`, at: row.createdAt, status: row.status })),
+      ...activeServices.map((row) => { const vehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined; return { id: row.code, kind: "service", title: row.type, detail: `${vehicle?.name || row.vehicle} • ${vehicle?.plate || row.plate}`, at: row.createdAt, status: row.status }; }),
       ...activeTransactions.map((row) => ({ id: row.reference, kind: "finance", title: row.kind === "Prihod" ? "Evidentiran prihod" : "Evidentiran rashod", detail: `${row.description} • ${money(row.amount)}`, at: row.createdAt, status: row.status })),
     ].sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 8);
 

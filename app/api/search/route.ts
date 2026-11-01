@@ -19,9 +19,18 @@ export async function GET(request: Request) {
       deleted.get(row.entity)?.add(row.recordKey);
     }
     const contains = (...values: unknown[]) => values.join(" ").toLocaleLowerCase("sr").includes(query);
+    const vehiclesById = new Map(vehicleRows.map((row) => [row.id, row]));
     const results = [
-      ...vehicleRows.filter((row) => !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.plate, row.vin, row.location)).map((row) => ({ type: "vehicle", id: row.plate, title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
-      ...reservationRows.filter((row) => !deleted.get("reservations")?.has(row.code) && contains(row.code, row.client, row.vehicle, row.location)).map((row) => ({ type: "reservation", id: row.code, title: row.client, subtitle: `${row.code} • ${row.vehicle}`, data: row })),
+      ...vehicleRows.filter((row) => !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.plate, row.vin, row.location)).map((row) => ({ type: "vehicle", id: String(row.id), title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
+      ...reservationRows.filter((row) => {
+        const linkedVehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined;
+        return !deleted.get("reservations")?.has(row.code) && contains(row.code, row.client, linkedVehicle?.name || row.vehicle, linkedVehicle?.plate, row.location);
+      }).map((row) => {
+        const linkedVehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined;
+        const vehicle = linkedVehicle?.name || row.vehicle;
+        const vehiclePlate = linkedVehicle?.plate || "";
+        return { type: "reservation", id: row.code, title: row.client, subtitle: `${row.code} • ${vehicle}${vehiclePlate ? ` • ${vehiclePlate}` : ""}`, data: { ...row, vehicle, vehiclePlate } };
+      }),
       ...clientRows.filter((row) => !deleted.get("clients")?.has(row.email) && contains(row.name, row.email, row.phone, row.city)).map((row) => ({ type: "client", id: row.email, title: row.name, subtitle: `${row.phone} • ${row.city}`, data: row })),
     ].slice(0, 8);
     return Response.json({ results });

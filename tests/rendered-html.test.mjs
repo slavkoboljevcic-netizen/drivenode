@@ -12,16 +12,25 @@ async function render() {
 
   // This render only needs startup schema initialization, not application data.
   // Keep D1 isolated from the developer's local and production databases.
-  const statements = [];
   const DB = {
     prepare(sql) {
-      statements.push(sql);
-      return { sql };
+      return {
+        sql,
+        async all() {
+          return { results: /^PRAGMA table_info/.test(sql) ? [{ name: "vehicle_id" }] : [] };
+        },
+        async run() {
+          return { success: true };
+        },
+      };
     },
     async batch(queries) {
       assert.ok(queries.length > 0);
-      assert.equal(queries.length, statements.length);
-      assert.ok(statements.every((sql) => /^CREATE (TABLE|UNIQUE INDEX) IF NOT EXISTS/.test(sql)));
+      assert.ok(
+        queries.every(({ sql }) =>
+          /^(CREATE (TABLE|(?:UNIQUE )?INDEX|TRIGGER) IF NOT EXISTS|UPDATE |DROP TRIGGER IF EXISTS)/.test(sql),
+        ),
+      );
       return queries.map(() => ({ success: true, results: [] }));
     },
   };
@@ -61,7 +70,15 @@ test("shared helpers preserve input and display boundaries", async () => {
   const { outputText } = ts.transpileModule(source, {
     compilerOptions: { module: ts.ModuleKind.ESNext },
   });
-  const { clean, displayPlate, formatDate, bookingDate, statusTone } =
+  const {
+    clean,
+    displayPlate,
+    formatDate,
+    bookingDate,
+    reservationBlocksVehicle,
+    reservationPeriodsOverlap,
+    statusTone,
+  } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
   assert.equal(clean("  Novi Sad \n"), "Novi Sad");
@@ -72,6 +89,28 @@ test("shared helpers preserve input and display boundaries", async () => {
   assert.equal(formatDate("nije datum"), "nije datum");
   assert.match(formatDate("2026-10-12T14:35:00"), / • 14:35$/);
   assert.match(bookingDate("2026-10-12T14:35:00"), /^12\. 10\. 2026\. • 14:35$/);
+  assert.equal(reservationBlocksVehicle("Potvrđena"), true);
+  assert.equal(reservationBlocksVehicle("Aktivna"), true);
+  assert.equal(reservationBlocksVehicle("Završena"), false);
+  assert.equal(reservationBlocksVehicle("Otkazana"), false);
+  assert.equal(
+    reservationPeriodsOverlap(
+      "2026-11-01T10:00",
+      "2026-11-05T10:00",
+      "2026-11-04T10:00",
+      "2026-11-06T10:00",
+    ),
+    true,
+  );
+  assert.equal(
+    reservationPeriodsOverlap(
+      "2026-11-01T10:00",
+      "2026-11-05T10:00",
+      "2026-11-05T10:00",
+      "2026-11-06T10:00",
+    ),
+    false,
+  );
   for (const [status, expected] of [
     ["Dostupno", "green"], ["Aktivna", "blue"], ["U toku", "blue"],
     ["Na servisu", "red"], ["Uskoro", "red"], ["Potvrđena", "violet"],

@@ -15,7 +15,6 @@ import "./styles/reports.css";
 import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
-import "./styles/brand-logo.css";
 import { displayPlate, formatDate } from "./lib";
 import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
@@ -55,6 +54,7 @@ import {
   VehicleIcon,
 } from "./components/icons";
 type V = {
+  id: number;
   name: string;
   plate: string;
   year: number;
@@ -70,8 +70,10 @@ type V = {
 
 type B = {
   id: string;
+  vehicleId: number | null;
   client: string;
   vehicle: string;
+  vehiclePlate: string;
   from: string;
   to: string;
   price: string;
@@ -90,6 +92,7 @@ type C = {
 };
 type S = {
   id?: number;
+  vehicleId?: number | null;
   code: string;
   vehicle: string;
   plate: string;
@@ -103,6 +106,7 @@ type S = {
 };
 type F = {
   id?: number;
+  vehicleId?: number | null;
   reference: string;
   description: string;
   category: string;
@@ -116,6 +120,7 @@ type F = {
 };
 type D = {
   id?: number;
+  vehicleId?: number | null;
   name: string;
   folder: string;
   linkedTo: string;
@@ -366,21 +371,6 @@ function RowMenu({
     </div>
   );
 }
-function Head({
-  title,
-  sub,
-  action,
-  onAction,
-}: {
-  title: string;
-  sub: string;
-  action?: string;
-  onAction?: () => void;
-}) {
-  return (
-    <PageHeader title={title} subtitle={sub} action={action} onAction={onAction} />
-  );
-}
 function Kpis({
   items,
   actions,
@@ -502,7 +492,7 @@ function Vehicles({
   }, [addTrigger, onAddHandled]);
   const all = [...added, ...vehicles]
     .filter((v) => !deleted.has(v.plate))
-    .filter((v, i, a) => a.findIndex((x) => x.plate === v.plate) === i);
+    .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i);
   const shown = all
     .filter(
       (v) =>
@@ -517,6 +507,12 @@ function Vehicles({
     setStatus(s);
     setSortNew(false);
   };
+  const rentedVehicleCount = all.filter(
+    (v) => v.status === "Iznajmljeno",
+  ).length;
+  const fleetUtilization = all.length
+    ? Math.round((rentedVehicleCount / all.length) * 100)
+    : 0;
   const vehicleKpis = [
     [
       "Ukupno vozila",
@@ -547,9 +543,9 @@ function Vehicles({
       "red",
     ],
     [
-      "Lokacije",
-      String(new Set(all.map((v) => v.location.split(" • ")[0])).size),
-      "aktivne poslovnice",
+      "Iskorišćenost",
+      `${fleetUtilization}%`,
+      `${rentedVehicleCount} od ${all.length} vozila u najmu`,
       "",
       "amber",
     ],
@@ -563,13 +559,13 @@ function Vehicles({
       return;
     try {
       const response = await fetch(
-        "/api/vehicles?plate=" + encodeURIComponent(vehicle.plate),
+        "/api/vehicles?id=" + encodeURIComponent(vehicle.id),
         { method: "DELETE" },
       );
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Vozilo nije obrisano.");
       setAdded((current) =>
-        current.filter((item) => item.plate !== vehicle.plate),
+        current.filter((item) => item.id !== vehicle.id),
       );
     } catch (error) {
       alert(error instanceof Error ? error.message : "Vozilo nije obrisano.");
@@ -577,9 +573,9 @@ function Vehicles({
   };
   return (
     <>
-      <Head
+      <PageHeader
         title="Vozila"
-        sub="Pregled i upravljanje kompletnom flotom."
+        subtitle="Pregled i upravljanje kompletnom flotom."
         action="Dodaj vozilo"
         onAction={() => setShowAdd(true)}
       />
@@ -592,7 +588,7 @@ function Vehicles({
           () => setKpi("Dostupno"),
           () => setKpi("Iznajmljeno"),
           () => setKpi("Na servisu"),
-          () => setKpi("Svi statusi"),
+          () => setKpi("Iznajmljeno"),
         ]}
       />
       <section className="panel table-panel">
@@ -672,7 +668,7 @@ function Vehicles({
             </thead>
             <tbody>
               {shown.map((v) => (
-                <tr key={v.plate} onClick={() => open(v)}>
+                <tr key={v.id} onClick={() => open(v)}>
                   <td>
                     <div className="vehicle-cell">
                       <span className="car-thumb">
@@ -1085,10 +1081,16 @@ function VehicleDocuments({ v }: { v: V }) {
     fetch("/api/documents")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) =>
-        setDocs((d.documents || []).filter((x: D) => x.linkedTo === v.plate)),
+        setDocs(
+          (d.documents || []).filter(
+            (x: D) =>
+              x.vehicleId === v.id ||
+              (!x.vehicleId && x.linkedTo === v.plate),
+          ),
+        ),
       )
       .catch(() => {});
-  }, [v.plate]);
+  }, [v.id, v.plate]);
   return (
     <section className="panel vehicle-tab-panel">
       <div className="panel-head">
@@ -1140,6 +1142,7 @@ function VehicleDocuments({ v }: { v: V }) {
           }}
           defaultFolder="Vozila"
           defaultLinkedTo={v.plate}
+          defaultVehicleId={v.id}
         />
       )}{" "}
       {selected && (
@@ -1198,6 +1201,7 @@ function EditVehicleModal({
         body: JSON.stringify({
           ...form,
           plate,
+          id: vehicle.id,
           originalPlate: vehicle.plate,
           year: Number(form.year),
           km: Number(form.km),
@@ -1392,16 +1396,20 @@ function Reservations({
           (data.reservations || []).map(
             (r: {
               code: string;
+              vehicleId: number | null;
               client: string;
               vehicle: string;
+              vehiclePlate: string;
               startsAt: string;
               endsAt: string;
               price: number;
               status: string;
             }) => ({
               id: r.code,
+              vehicleId: r.vehicleId,
               client: r.client,
               vehicle: r.vehicle,
+              vehiclePlate: r.vehiclePlate,
               from: formatDate(r.startsAt),
               to: formatDate(r.endsAt),
               price: `${Number(r.price).toLocaleString("sr-RS")} RSD`,
@@ -1416,12 +1424,24 @@ function Reservations({
   const all = [...added, ...bookings]
     .filter((b, i, a) => a.findIndex((x) => x.id === b.id) === i)
     .map((b) => ({ ...b, status: overrides[b.id] || b.status }));
+  const vehicleKey = (booking: B) =>
+    booking.vehicleId ? String(booking.vehicleId) : `legacy:${booking.vehicle}`;
+  const vehicleOptions = Array.from(
+    new Map(
+      all.map((booking) => [
+        vehicleKey(booking),
+        `${booking.vehicle}${booking.vehiclePlate ? ` • ${displayPlate(booking.vehiclePlate)}` : ""}`,
+      ]),
+    ),
+  );
   const shown = all
     .filter(
       (b) =>
-        (b.client + b.vehicle + b.id).toLowerCase().includes(q.toLowerCase()) &&
+        (b.client + b.vehicle + b.vehiclePlate + b.id)
+          .toLowerCase()
+          .includes(q.toLowerCase()) &&
         (status === "Svi statusi" || b.status === status) &&
-        (vehicle === "Sva vozila" || b.vehicle === vehicle),
+        (vehicle === "Sva vozila" || vehicleKey(b) === vehicle),
     )
     .sort((a, b) =>
       sortValue
@@ -1502,9 +1522,9 @@ function Reservations({
   ];
   return (
     <>
-      <Head
+      <PageHeader
         title="Rezervacije"
-        sub="Sve rezervacije, preuzimanja i povrati na jednom mestu."
+        subtitle="Sve rezervacije, preuzimanja i povrati na jednom mestu."
         action="Nova rezervacija"
         onAction={newReservation}
       />
@@ -1558,8 +1578,8 @@ function Reservations({
                 onChange={(e) => setVehicle(e.target.value)}
               >
                 <option>Sva vozila</option>
-                {[...new Set(all.map((b) => b.vehicle))].map((v) => (
-                  <option key={v}>{v}</option>
+                {vehicleOptions.map(([value, label]) => (
+                  <option value={value} key={value}>{label}</option>
                 ))}
               </CustomSelect>
             </label>
@@ -1598,7 +1618,10 @@ function Reservations({
                     <strong className="link">{b.id}</strong>
                   </td>
                   <td>{b.client}</td>
-                  <td>{b.vehicle}</td>
+                  <td>
+                    {b.vehicle}
+                    {b.vehiclePlate && <small>{displayPlate(b.vehiclePlate)}</small>}
+                  </td>
                   <td>
                     <strong>{b.from}</strong>
                     <small>do {b.to}</small>
@@ -1646,12 +1669,10 @@ function NewReservationModal({
   close: () => void;
   saved: () => void;
 }) {
-  const [vehicleOptions, setVehicleOptions] = useState(
-    vehicles.map((v) => v.name),
-  );
+  const [vehicleOptions, setVehicleOptions] = useState<V[]>(vehicles);
   const [form, setForm] = useState({
     client: "",
-    vehicle: vehicles[0]?.name || "",
+    vehicleId: vehicles[0]?.id ? String(vehicles[0].id) : "",
     startsAt: "",
     endsAt: "",
     location: "Beograd • Aerodrom",
@@ -1664,13 +1685,13 @@ function NewReservationModal({
     fetch("/api/vehicles")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((data) => {
-        const opts = [
-          ...new Set(
-            (data.vehicles || []).map((v: { name: string }) => v.name),
-          ),
-        ] as string[];
+        const opts = (data.vehicles || []) as V[];
         setVehicleOptions(opts);
-        if (opts[0]) setForm((f) => ({ ...f, vehicle: f.vehicle || opts[0] }));
+        if (opts[0])
+          setForm((f) => ({
+            ...f,
+            vehicleId: f.vehicleId || String(opts[0].id),
+          }));
       })
       .catch(() => {});
   }, []);
@@ -1724,12 +1745,14 @@ function NewReservationModal({
           <label>
             Vozilo *
             <CustomSelect
-              value={form.vehicle}
-              onChange={(e) => set("vehicle", e.target.value)}
+              value={form.vehicleId}
+              onChange={(e) => set("vehicleId", e.target.value)}
             >
               <option value="">Izaberite vozilo</option>
               {vehicleOptions.map((v) => (
-                <option key={v}>{v}</option>
+                <option value={v.id} key={v.id}>
+                  {v.name} • {displayPlate(v.plate, v.registered)}
+                </option>
               ))}
             </CustomSelect>
           </label>
@@ -1858,7 +1881,7 @@ function BookingPanel({
           </div>
           <div>
             <b>{b.vehicle}</b>
-            <small>Rent-a-car vozilo</small>
+            <small>{b.vehiclePlate ? displayPlate(b.vehiclePlate) : "Rent-a-car vozilo"}</small>
           </div>
         </div>
         <div className="trip">
@@ -2026,9 +2049,9 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
   ];
   return (
     <>
-      <Head
+      <PageHeader
         title="Klijenti"
-        sub="Baza klijenata, dokumenta i istorija najma."
+        subtitle="Baza klijenata, dokumenta i istorija najma."
         action="Novi klijent"
         onAction={() => setShowAdd(true)}
       />
@@ -2650,9 +2673,9 @@ function Services({
   ];
   return (
     <>
-      <Head
+      <PageHeader
         title="Servisi i registracije"
-        sub="Održavanje, registracije i rokovi cele flote."
+        subtitle="Održavanje, registracije i rokovi cele flote."
         action="Novi servis"
         onAction={() => setShowAdd(true)}
       />
@@ -2864,6 +2887,7 @@ function ServiceForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          vehicleId: vehicle.id,
           vehicle: vehicle.name,
           plate: vehicle.plate,
           mileage: Number(form.mileage),
@@ -3248,9 +3272,9 @@ function Finance({
   ];
   return (
     <>
-      <Head
+      <PageHeader
         title="Finansije"
-        sub="Prihodi, rashodi i profitabilnost poslovanja."
+        subtitle="Prihodi, rashodi i profitabilnost poslovanja."
         action="Nova transakcija"
         onAction={() => setShowAdd(true)}
       />
@@ -3743,9 +3767,9 @@ function Documents({
   const total = all.reduce((s, d) => s + d.size, 0);
   return (
     <>
-      <Head
+      <PageHeader
         title="Dokumentacija"
-        sub="Sva dokumenta organizovana i dostupna na jednom mestu."
+        subtitle="Sva dokumenta organizovana i dostupna na jednom mestu."
         action="Otpremi dokument"
         onAction={() => setUpload(true)}
       />
@@ -3903,11 +3927,13 @@ function DocumentUpload({
   saved,
   defaultFolder = "Ugovori",
   defaultLinkedTo = "",
+  defaultVehicleId = null,
 }: {
   close: () => void;
   saved: (d: D) => void;
   defaultFolder?: string;
   defaultLinkedTo?: string;
+  defaultVehicleId?: number | null;
 }) {
   const [file, setFile] = useState<File | null>(null);
   const [folder, setFolder] = useState(defaultFolder);
@@ -3923,6 +3949,7 @@ function DocumentUpload({
     body.append("file", file);
     body.append("folder", folder);
     body.append("linkedTo", linkedTo);
+    if (defaultVehicleId) body.append("vehicleId", String(defaultVehicleId));
     body.append("expiresAt", expiresAt);
     try {
       const r = await fetch("/api/documents", { method: "POST", body });
@@ -4451,9 +4478,9 @@ function Users() {
   );
   return (
     <>
-      <Head
+      <PageHeader
         title="Korisnici i dozvole"
-        sub="Upravljajte timom, ulogama i pristupom podacima."
+        subtitle="Upravljajte timom, ulogama i pristupom podacima."
         action="Pozovi korisnika"
         onAction={() => setInvite(true)}
       />
@@ -4889,7 +4916,10 @@ function Settings() {
   const [tab, setTab] = useState("Firma");
   return (
     <>
-      <Head title="Podešavanja" sub="Prilagodite DriveNode vašem poslovanju." />
+      <PageHeader
+        title="Podešavanja"
+        subtitle="Prilagodite DriveNode vašem poslovanju."
+      />
       <div className="settings-layout">
         <nav>
           {[
@@ -5104,7 +5134,7 @@ function App() {
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
           const row = (d.vehicles || []).find(
-            (x: { plate: string }) => x.plate === decodeURIComponent(parts[1]),
+            (x: { id: number }) => x.id === Number(parts[1]),
           );
           if (row)
             setV({
@@ -5123,8 +5153,10 @@ function App() {
           if (row)
             setB({
               id: row.code,
+              vehicleId: row.vehicleId ?? null,
               client: row.client,
               vehicle: row.vehicle,
+              vehiclePlate: row.vehiclePlate || "",
               from: formatDate(row.startsAt),
               to: formatDate(row.endsAt),
               price: Number(row.price).toLocaleString("sr-RS") + " RSD",
@@ -5181,7 +5213,7 @@ function App() {
     setVehicleSection("fleet");
     setV(vehicle);
     setB(null);
-    const path = "/vehicles/" + encodeURIComponent(vehicle.plate);
+    const path = "/vehicles/" + encodeURIComponent(vehicle.id);
     history.pushState({}, "", path);
     setPathname(path);
   };

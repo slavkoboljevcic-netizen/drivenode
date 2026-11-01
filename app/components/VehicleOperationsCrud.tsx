@@ -8,10 +8,11 @@ import CustomInput from "./CustomInput";
 import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
-type Vehicle = { name: string; plate: string; km: string; location: string; registered?: boolean };
+type Vehicle = { id: number; name: string; plate: string; km: string; location: string; registered?: boolean };
 
 type Row = {
   id?: number;
+  vehicleId?: number | null;
   code?: string;
   reference?: string;
   type?: string;
@@ -161,6 +162,7 @@ function Drawer({
     if (tab === "Servisi")
       body = {
         code: row?.code,
+        vehicleId: v.id,
         vehicle: v.name,
         plate: v.plate,
         type: form.title,
@@ -174,6 +176,7 @@ function Drawer({
     else if (tab === "Troškovi")
       body = {
         reference: row?.reference,
+        vehicleId: v.id,
         description: `[${v.plate}] ${form.title}`,
         category: row?.category || "Troškovi vozila",
         kind: "Rashod",
@@ -187,6 +190,7 @@ function Drawer({
     else if (tab === "Rezervacije")
       body = {
         code: row?.code,
+        vehicleId: v.id,
         client: form.title,
         vehicle: v.name,
         startsAt: form.date,
@@ -198,6 +202,7 @@ function Drawer({
     else
       body = {
         code: row?.code,
+        vehicleId: v.id,
         vehicle: v.name,
         plate: v.plate,
         description: form.title,
@@ -341,18 +346,20 @@ export default function VehicleOperationsCrud({
         const all = (d[c.key] || []) as Row[];
         setRows(
           all.filter((x) =>
-            tab === "Troškovi"
-              ? x.description?.startsWith(`[${v.plate}]`)
-              : tab === "Rezervacije"
-                ? x.vehicle === v.name
-                : x.plate === v.plate,
+            x.vehicleId === v.id ||
+            (!x.vehicleId &&
+              (tab === "Troškovi"
+                ? x.description?.startsWith(`[${v.plate}]`)
+                : tab === "Rezervacije"
+                  ? x.vehicle === v.name
+                  : x.plate === v.plate)),
           ),
         );
         setError("");
       })
       .catch(() => setError("Zapisi trenutno nisu dostupni."))
       .finally(() => setLoading(false));
-  }, [tab, v.name, v.plate]);
+  }, [tab, v.id, v.name, v.plate]);
   useEffect(() => {
     load();
   }, [load]);

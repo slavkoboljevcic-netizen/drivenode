@@ -73,6 +73,7 @@ export async function GET() {
       if (!deleted.has(row.entity)) deleted.set(row.entity, new Set());
       deleted.get(row.entity)?.add(row.recordKey);
     }
+    const vehiclesById = new Map(vehicleRows.map((vehicle) => [vehicle.id, vehicle]));
 
     const today = localToday();
     const todayDay = dayNumber(today);
@@ -88,6 +89,11 @@ export async function GET() {
       if (!Number.isFinite(days) || days > 30) continue;
       const registration = service.type.toLocaleLowerCase("sr").includes("registr");
       const overdue = days < 0;
+      const linkedVehicle = service.vehicleId
+        ? vehiclesById.get(service.vehicleId)
+        : undefined;
+      const vehicleName = linkedVehicle?.name || service.vehicle;
+      const vehiclePlate = linkedVehicle?.plate || service.plate;
       notifications.push({
         id: `${registration ? "registration" : "service"}:${service.code}:${due}`,
         kind: registration ? "registration" : "service",
@@ -95,7 +101,7 @@ export async function GET() {
         title: registration
           ? overdue ? "Registracija je istekla" : "Registracija uskoro ističe"
           : overdue ? "Servisni rok je prekoračen" : "Predstojeći servis",
-        detail: `${service.vehicle} • ${displayPlate(service.plate)} • ${displayDate(due)}`,
+        detail: `${vehicleName} • ${displayPlate(vehiclePlate)} • ${displayDate(due)}`,
         dueAt: due,
         targetPage: "Servisi i registracije",
         targetId: service.code,
@@ -109,13 +115,17 @@ export async function GET() {
       ) continue;
       const start = dateKey(reservation.startsAt);
       const end = dateKey(reservation.endsAt);
+      const linkedVehicle = reservation.vehicleId
+        ? vehiclesById.get(reservation.vehicleId)
+        : undefined;
+      const vehicleLabel = `${linkedVehicle?.name || reservation.vehicle}${linkedVehicle?.plate ? ` • ${displayPlate(linkedVehicle.plate)}` : ""}`;
       if (start === today) {
         notifications.push({
           id: `reservation-start:${reservation.code}:${start}`,
           kind: "reservation",
           severity: "warning",
           title: "Preuzimanje vozila danas",
-          detail: `${reservation.client} • ${reservation.vehicle}`,
+          detail: `${reservation.client} • ${vehicleLabel}`,
           dueAt: reservation.startsAt,
           targetPage: "Rezervacije",
           targetId: reservation.code,
@@ -127,7 +137,7 @@ export async function GET() {
           kind: "reservation",
           severity: "critical",
           title: "Povrat vozila danas",
-          detail: `${reservation.client} • ${reservation.vehicle}`,
+          detail: `${reservation.client} • ${vehicleLabel}`,
           dueAt: reservation.endsAt,
           targetPage: "Rezervacije",
           targetId: reservation.code,
@@ -139,7 +149,7 @@ export async function GET() {
           kind: "reservation",
           severity: "warning",
           title: "Rezervacija čeka potvrdu",
-          detail: `${reservation.code} • ${reservation.client} • ${reservation.vehicle}`,
+          detail: `${reservation.code} • ${reservation.client} • ${vehicleLabel}`,
           dueAt: reservation.startsAt,
           targetPage: "Rezervacije",
           targetId: reservation.code,
@@ -186,12 +196,15 @@ export async function GET() {
 
     for (const damage of damageRows) {
       if (!["Prijavljena", "U obradi"].includes(damage.status)) continue;
+      const linkedVehicle = damage.vehicleId
+        ? vehiclesById.get(damage.vehicleId)
+        : undefined;
       notifications.push({
         id: `damage:${damage.code}`,
         kind: "damage",
         severity: damage.status === "Prijavljena" ? "critical" : "warning",
         title: damage.status === "Prijavljena" ? "Nova prijavljena šteta" : "Šteta je u obradi",
-        detail: `${damage.vehicle} • ${displayPlate(damage.plate)} • ${damage.description}`,
+        detail: `${linkedVehicle?.name || damage.vehicle} • ${displayPlate(linkedVehicle?.plate || damage.plate)} • ${damage.description}`,
         dueAt: damage.date,
         targetPage: "Vozila",
         targetId: damage.code,
@@ -204,14 +217,14 @@ export async function GET() {
         vehicle.registered
       ) continue;
       notifications.push({
-        id: `vehicle-unregistered:${vehicle.plate}`,
+        id: `vehicle-unregistered:${vehicle.id}`,
         kind: "vehicle",
         severity: "info",
         title: "Vozilo nije registrovano",
         detail: `${vehicle.name} • ${vehicle.location}`,
         dueAt: dateKey(vehicle.createdAt),
         targetPage: "Vozila",
-        targetId: vehicle.plate,
+        targetId: String(vehicle.id),
       });
     }
 
