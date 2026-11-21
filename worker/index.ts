@@ -40,6 +40,7 @@ const databaseSchema = [
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     code TEXT NOT NULL,
     vehicle_id INTEGER,
+    client_id INTEGER,
     client TEXT NOT NULL,
     vehicle TEXT NOT NULL,
     starts_at TEXT NOT NULL,
@@ -145,23 +146,25 @@ const databaseSchema = [
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicle_damages_code ON vehicle_damages (code)`,
 ] as const;
 
-const vehicleRelationColumns = [
+const relationColumns = [
   ["reservations", "vehicle_id"],
+  ["reservations", "client_id"],
   ["service_records", "vehicle_id"],
   ["transactions", "vehicle_id"],
   ["documents", "vehicle_id"],
   ["vehicle_damages", "vehicle_id"],
 ] as const;
 
-const vehicleRelationIndexes = [
+const relationIndexes = [
   `CREATE INDEX IF NOT EXISTS idx_reservations_vehicle_id ON reservations (vehicle_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_reservations_client_id ON reservations (client_id)`,
   `CREATE INDEX IF NOT EXISTS idx_service_records_vehicle_id ON service_records (vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_transactions_vehicle_id ON transactions (vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_documents_vehicle_id ON documents (vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_vehicle_damages_vehicle_id ON vehicle_damages (vehicle_id)`,
 ] as const;
 
-const vehicleRelationBackfill = [
+const relationBackfill = [
   `UPDATE reservations
    SET vehicle_id = (
      SELECT MIN(vehicle.id)
@@ -173,6 +176,18 @@ const vehicleRelationBackfill = [
        SELECT COUNT(*)
        FROM vehicles AS vehicle
        WHERE lower(trim(vehicle.name)) = lower(trim(reservations.vehicle))
+     )`,
+  `UPDATE reservations
+   SET client_id = (
+     SELECT MIN(client.id)
+     FROM clients AS client
+     WHERE lower(trim(client.name)) = lower(trim(reservations.client))
+   )
+   WHERE client_id IS NULL
+     AND 1 = (
+       SELECT COUNT(*)
+       FROM clients AS client
+       WHERE lower(trim(client.name)) = lower(trim(reservations.client))
      )`,
   `UPDATE service_records
    SET vehicle_id = (
@@ -264,8 +279,8 @@ const reservationProtectionSchema = [
 
 let databaseInitialization: Promise<void> | undefined;
 
-async function addMissingVehicleRelationColumns(env: Env) {
-  for (const [table, column] of vehicleRelationColumns) {
+async function addMissingRelationColumns(env: Env) {
+  for (const [table, column] of relationColumns) {
     const result = await env.DB.prepare(`PRAGMA table_info(${table})`).all<{
       name: string;
     }>();
@@ -283,12 +298,12 @@ function ensureDatabase(env: Env) {
       await env.DB.batch(
         databaseSchema.map((statement) => env.DB.prepare(statement)),
       );
-      await addMissingVehicleRelationColumns(env);
+      await addMissingRelationColumns(env);
       await env.DB.batch(
-        vehicleRelationIndexes.map((statement) => env.DB.prepare(statement)),
+        relationIndexes.map((statement) => env.DB.prepare(statement)),
       );
       await env.DB.batch(
-        vehicleRelationBackfill.map((statement) => env.DB.prepare(statement)),
+        relationBackfill.map((statement) => env.DB.prepare(statement)),
       );
       await env.DB.batch(
         reservationProtectionSchema.map((statement) =>

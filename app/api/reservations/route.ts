@@ -5,7 +5,12 @@ import {
 } from "../../lib";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
-import { deletedRecords, reservations, vehicles } from "../../../db/schema";
+import {
+  clients,
+  deletedRecords,
+  reservations,
+  vehicles,
+} from "../../../db/schema";
 
 type ReservationConflict = typeof reservations.$inferSelect;
 
@@ -38,6 +43,30 @@ const conflictResponse = (
 
 const isDatabaseConflict = (error: unknown) =>
   error instanceof Error && error.message.includes("RESERVATION_CONFLICT");
+
+async function findSelectableClient(
+  db: ReturnType<typeof getDb>,
+  clientId: number,
+) {
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(eq(clients.id, clientId));
+  if (!client) return null;
+
+  const [deletedClient] = await db
+    .select({ id: deletedRecords.id })
+    .from(deletedRecords)
+    .where(
+      and(
+        eq(deletedRecords.entity, "clients"),
+        eq(deletedRecords.recordKey, client.email),
+      ),
+    )
+    .limit(1);
+
+  return deletedClient ? null : client;
+}
 
 async function findReservationConflict(
   db: ReturnType<typeof getDb>,
@@ -89,9 +118,10 @@ async function findReservationConflict(
 export async function GET() {
   try {
     const db = getDb();
-    const [rows, vehicleRows, hiddenRows] = await Promise.all([
+    const [rows, vehicleRows, clientRows, hiddenRows] = await Promise.all([
       db.select().from(reservations).orderBy(desc(reservations.id)),
       db.select().from(vehicles),
+      db.select().from(clients),
       db
         .select({ code: deletedRecords.recordKey })
         .from(deletedRecords)
@@ -99,6 +129,7 @@ export async function GET() {
     ]);
     const hiddenCodes = new Set(hiddenRows.map((row) => row.code));
     const vehiclesById = new Map(vehicleRows.map((vehicle) => [vehicle.id, vehicle]));
+    const clientsById = new Map(clientRows.map((client) => [client.id, client]));
     return Response.json({
       reservations: rows
         .filter((row) => !hiddenCodes.has(row.code))
@@ -106,8 +137,12 @@ export async function GET() {
           const linkedVehicle = row.vehicleId
             ? vehiclesById.get(row.vehicleId)
             : undefined;
+          const linkedClient = row.clientId
+            ? clientsById.get(row.clientId)
+            : undefined;
           return {
             ...row,
+            client: linkedClient?.name || row.client,
             vehicle: linkedVehicle?.name || row.vehicle,
             vehiclePlate: linkedVehicle?.plate || "",
           };
@@ -122,14 +157,14 @@ export async function POST(request: Request) {
   let requestedVehicle = "izabrano";
   try {
     const body = await request.json() as Record<string, unknown>;
-    const client = clean(body.client);
+    const clientId = Number(body.clientId);
     const vehicleId = Number(body.vehicleId);
     const startsAt = clean(body.startsAt);
     const endsAt = clean(body.endsAt);
     const location = clean(body.location);
     const status = clean(body.status) || "Potvrđena";
     const price = Number(body.price);
-    if (!client || !Number.isInteger(vehicleId) || vehicleId < 1 || !startsAt || !endsAt || !location || !Number.isFinite(price) || price < 0) {
+    if (!Number.isInteger(clientId) || clientId < 1 || !Number.isInteger(vehicleId) || vehicleId < 1 || !startsAt || !endsAt || !location || !Number.isFinite(price) || price < 0) {
       return Response.json({ error: "Popunite sva obavezna polja ispravnim podacima." }, { status: 400 });
     }
     const start = new Date(startsAt);
@@ -138,6 +173,10 @@ export async function POST(request: Request) {
       return Response.json({ error: "Datum vraćanja mora biti posle datuma preuzimanja." }, { status: 400 });
     }
     const db = getDb();
+    const linkedClient = await findSelectableClient(db, clientId);
+    if (!linkedClient) {
+      return Response.json({ error: "Izabrani klijent više nije dostupan." }, { status: 400 });
+    }
     const [linkedVehicle] = await db
       .select()
       .from(vehicles)
@@ -146,6 +185,7 @@ export async function POST(request: Request) {
       return Response.json({ error: "Izabrano vozilo više ne postoji." }, { status: 400 });
     }
     const vehicle = linkedVehicle.name;
+    const client = linkedClient.name;
     requestedVehicle = vehicle;
     if (reservationBlocksVehicle(status)) {
       const conflict = await findReservationConflict(
@@ -158,7 +198,7 @@ export async function POST(request: Request) {
       if (conflict) return conflictResponse(vehicle, conflict);
     }
     const code = `DN-${Date.now().toString().slice(-6)}`;
-    const [reservation] = await db.insert(reservations).values({ code, vehicleId, client, vehicle, startsAt, endsAt, location, status, price: Math.round(price) }).returning();
+    const [reservation] = await db.insert(reservations).values({ code, clientId, vehicleId, client, vehicle, startsAt, endsAt, location, status, price: Math.round(price) }).returning();
     return Response.json({ reservation }, { status: 201 });
   } catch (error) {
     if (isDatabaseConflict(error)) return conflictResponse(requestedVehicle);
@@ -183,12 +223,20 @@ export async function PATCH(request: Request) {
       .where(eq(reservations.code, code));
     if (!current) return Response.json({ error: "Rezervacija nije pronađena." }, { status: 404 });
 
-    const hasDetails = Boolean(clean(body.client));
+    const hasDetails = body.clientId !== undefined || Boolean(clean(body.client));
     let proposed = { ...current, status };
     if (hasDetails) {
+      const clientId = Number(body.clientId);
       const vehicleId = Number(body.vehicleId);
+      if (!Number.isInteger(clientId) || clientId < 1) {
+        return Response.json({ error: "Izaberite postojećeg klijenta." }, { status: 400 });
+      }
       if (!Number.isInteger(vehicleId) || vehicleId < 1) {
         return Response.json({ error: "Izaberite postojeće vozilo." }, { status: 400 });
+      }
+      const linkedClient = await findSelectableClient(db, clientId);
+      if (!linkedClient) {
+        return Response.json({ error: "Izabrani klijent više nije dostupan." }, { status: 400 });
       }
       const [linkedVehicle] = await db
         .select()
@@ -199,7 +247,8 @@ export async function PATCH(request: Request) {
       }
       proposed = {
         ...current,
-        client: clean(body.client),
+        clientId,
+        client: linkedClient.name,
         vehicleId,
         vehicle: linkedVehicle.name,
         startsAt: clean(body.startsAt),
@@ -238,6 +287,7 @@ export async function PATCH(request: Request) {
     const values = hasDetails
       ? {
           client: proposed.client,
+          clientId: proposed.clientId,
           vehicleId: proposed.vehicleId,
           vehicle: proposed.vehicle,
           startsAt: proposed.startsAt,

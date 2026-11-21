@@ -3,10 +3,12 @@ import { desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import {
   deletedRecords,
+  reservations,
   serviceRecords,
   transactions,
   vehicles,
 } from "../../../db/schema";
+import { buildFinancialRecords } from "../financial-records";
 
 const optionalVehicleId = (value: unknown) => {
   const id = Number(value);
@@ -16,71 +18,21 @@ const optionalVehicleId = (value: unknown) => {
 export async function GET() {
   try {
     const db = getDb();
-    const [manual, services, vehicleRows, deleted] = await Promise.all([
+    const [manual, services, reservationRows, vehicleRows, deleted] = await Promise.all([
       db.select().from(transactions).orderBy(desc(transactions.id)),
       db.select().from(serviceRecords).orderBy(desc(serviceRecords.id)),
-      db
-        .select({
-          id: vehicles.id,
-          name: vehicles.name,
-          plate: vehicles.plate,
-          location: vehicles.location,
-        })
-        .from(vehicles),
-      db
-        .select({
-          entity: deletedRecords.entity,
-          key: deletedRecords.recordKey,
-        })
-        .from(deletedRecords),
+      db.select().from(reservations).orderBy(desc(reservations.id)),
+      db.select().from(vehicles),
+      db.select().from(deletedRecords),
     ]);
-    const hiddenServices = new Set(
-      deleted
-        .filter((item) => item.entity === "services")
-        .map((item) => item.key),
-    );
-    const locations = new Map(
-      vehicleRows.map((vehicle) => [
-        vehicle.id,
-        vehicle.location.split(" • ")[0],
-      ]),
-    );
-    const legacyLocations = new Map(
-      vehicleRows.map((vehicle) => [
-        vehicle.plate,
-        vehicle.location.split(" • ")[0],
-      ]),
-    );
-    const vehicleNames = new Map(
-      vehicleRows.map((vehicle) => [vehicle.id, vehicle.name]),
-    );
-    const automatic = services
-      .filter(
-        (service) => service.cost > 0 && !hiddenServices.has(service.code),
-      )
-      .map((service) => ({
-        id: -service.id,
-        vehicleId: service.vehicleId,
-        reference: `AUTO-${service.code}`,
-        description: `${service.type} — ${service.vehicleId ? vehicleNames.get(service.vehicleId) || service.vehicle : service.vehicle}`,
-        category:
-          service.type === "Registracija" ? "Registracija" : "Servis",
-        kind: "Rashod",
-        amount: service.cost,
-        date: service.dueDate,
-        location:
-          (service.vehicleId ? locations.get(service.vehicleId) : undefined) ||
-          legacyLocations.get(service.plate) ||
-          "Nije određena",
-        status: service.status === "Otkazano" ? "Stornirano" : "Plaćeno",
-        paymentMethod: "Automatski",
-        notes: `Povezano sa zapisom ${service.code} u Servisima i registracijama.`,
-        createdAt: service.createdAt,
-      }));
     return Response.json({
-      transactions: [...manual, ...automatic].sort((first, second) =>
-        String(second.createdAt).localeCompare(String(first.createdAt)),
-      ),
+      transactions: buildFinancialRecords({
+        deleted,
+        manual,
+        reservationRows,
+        services,
+        vehicleRows,
+      }),
     });
   } catch (error) {
     return Response.json(

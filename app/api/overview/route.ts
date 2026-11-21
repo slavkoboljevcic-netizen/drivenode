@@ -1,6 +1,7 @@
 import { desc } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { clients, deletedRecords, reservations, serviceRecords, transactions, vehicles } from "../../../db/schema";
+import { buildFinancialRecords } from "../financial-records";
 
 const dayKey = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
 const money = (value: number) => `${value.toLocaleString("sr-RS")} RSD`;
@@ -26,7 +27,13 @@ export async function GET() {
     const activeReservations = reservationRows.filter((row) => !deleted.get("reservations")?.has(row.code));
     const activeClients = clientRows.filter((row) => !deleted.get("clients")?.has(row.email));
     const activeServices = serviceRows.filter((row) => !deleted.get("services")?.has(row.code));
-    const activeTransactions = transactionRows.filter((row) => !deleted.get("transactions")?.has(row.reference));
+    const activeTransactions = buildFinancialRecords({
+      deleted: deletionRows,
+      manual: transactionRows,
+      reservationRows,
+      services: serviceRows,
+      vehicleRows,
+    });
     const vehiclesById = new Map(activeVehicles.map((row) => [row.id, row]));
 
     const now = new Date();

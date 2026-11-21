@@ -4,6 +4,7 @@ import {
   type ErrorInfo,
   type ReactNode,
   useEffect,
+  useId,
   useState,
 } from "react";
 import "./styles/calendar.css";
@@ -70,6 +71,7 @@ type V = {
 
 type B = {
   id: string;
+  clientId?: number | null;
   vehicleId: number | null;
   client: string;
   vehicle: string;
@@ -89,6 +91,9 @@ type C = {
   value: number;
   status: string;
   notes: string;
+};
+type ReservationClient = Pick<C, "name" | "email" | "phone" | "status"> & {
+  id: number;
 };
 type S = {
   id?: number;
@@ -117,6 +122,15 @@ type F = {
   status: string;
   paymentMethod: string;
   notes: string;
+};
+type ReportReservation = {
+  code: string;
+  vehicleId: number | null;
+  startsAt: string;
+  endsAt: string;
+  location: string;
+  price: number;
+  status: string;
 };
 type D = {
   id?: number;
@@ -326,7 +340,8 @@ function RowMenu({
   onDelete: () => void;
 }) {
   const [show, setShow] = useState(false);
-  const linked = label.startsWith("AUTO-SER-");
+  const linked = label.startsWith("AUTO-");
+  const linkedReservation = label.startsWith("AUTO-RES-");
   return (
     <div className="row-menu">
       <Button
@@ -357,14 +372,20 @@ function RowMenu({
               setShow(false);
               if (linked) {
                 alert(
-                  "Automatski trošak se menja ili briše na tabu Servisi i registracije u sekciji Vozila.",
+                  linkedReservation
+                    ? "Automatski prihod se menja kroz povezanu rezervaciju."
+                    : "Automatski trošak se menja ili briše na tabu Servisi i registracije u sekciji Vozila.",
                 );
                 return;
               }
               onDelete();
             }}
           >
-            {linked ? "Menja se u servisima" : "Obriši"}
+            {linked
+              ? linkedReservation
+                ? "Menja se u rezervaciji"
+                : "Menja se u servisima"
+              : "Obriši"}
           </Button>
         </div>
       )}
@@ -1396,6 +1417,7 @@ function Reservations({
           (data.reservations || []).map(
             (r: {
               code: string;
+              clientId: number | null;
               vehicleId: number | null;
               client: string;
               vehicle: string;
@@ -1406,6 +1428,7 @@ function Reservations({
               status: string;
             }) => ({
               id: r.code,
+              clientId: r.clientId,
               vehicleId: r.vehicleId,
               client: r.client,
               vehicle: r.vehicle,
@@ -1662,6 +1685,166 @@ function Reservations({
   );
 }
 
+type ReservationSearchOption = {
+  id: number;
+  label: string;
+  meta: string;
+  searchText: string;
+  selectedText: string;
+  subtitle: string;
+};
+
+const normalizeReservationSearch = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+function ReservationEntitySearch({
+  disabled,
+  emptyMessage,
+  inputId,
+  loading,
+  loadingPlaceholder,
+  noOptionsMessage,
+  onSelect,
+  options,
+  placeholder,
+  value,
+}: {
+  disabled: boolean;
+  emptyMessage: string;
+  inputId: string;
+  loading: boolean;
+  loadingPlaceholder: string;
+  noOptionsMessage: string;
+  onSelect: (id: string) => void;
+  options: ReservationSearchOption[];
+  placeholder: string;
+  value: string;
+}) {
+  const listboxId = useId();
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const normalizedQuery = normalizeReservationSearch(query);
+  const compactQuery = normalizedQuery.replace(/[^a-z0-9]/g, "");
+  const matches = normalizedQuery
+    ? options
+        .filter((option) => {
+          const text = normalizeReservationSearch(option.searchText);
+          const compactText = text.replace(/[^a-z0-9]/g, "");
+          return (
+            text.includes(normalizedQuery) ||
+            (compactQuery.length > 0 && compactText.includes(compactQuery))
+          );
+        })
+        .slice(0, 8)
+    : [];
+  const showResults = open && normalizedQuery.length > 0;
+
+  const choose = (option: ReservationSearchOption) => {
+    onSelect(String(option.id));
+    setQuery(option.selectedText);
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
+  return (
+    <div
+      className="reservation-search"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          setOpen(false);
+          setActiveIndex(-1);
+        }
+      }}
+    >
+      <CustomInput
+        aria-activedescendant={
+          showResults && activeIndex >= 0 && matches[activeIndex]
+            ? `${listboxId}-${matches[activeIndex].id}`
+            : undefined
+        }
+        aria-autocomplete="list"
+        aria-controls={showResults ? listboxId : undefined}
+        aria-expanded={showResults}
+        autoComplete="off"
+        disabled={disabled}
+        id={inputId}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          onSelect("");
+          setOpen(Boolean(event.target.value.trim()));
+          setActiveIndex(-1);
+        }}
+        onFocus={() => {
+          if (!value && query.trim()) setOpen(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            setOpen(false);
+            setActiveIndex(-1);
+            return;
+          }
+          if (!showResults || !matches.length) return;
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            setActiveIndex((current) => {
+              if (current < 0)
+                return direction === 1 ? 0 : matches.length - 1;
+              return (current + direction + matches.length) % matches.length;
+            });
+          } else if (event.key === "Enter") {
+            event.preventDefault();
+            choose(matches[activeIndex >= 0 ? activeIndex : 0]);
+          }
+        }}
+        placeholder={
+          loading
+            ? loadingPlaceholder
+            : options.length
+              ? placeholder
+              : noOptionsMessage
+        }
+        role="combobox"
+        value={query}
+      />
+      {showResults && (
+        <div
+          className="reservation-search-results"
+          id={listboxId}
+          role="listbox"
+        >
+          {matches.map((option, index) => (
+            <Button
+              aria-selected={index === activeIndex}
+              className={`reservation-search-option${index === activeIndex ? " active" : ""}`}
+              id={`${listboxId}-${option.id}`}
+              key={option.id}
+              onClick={() => choose(option)}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              role="option"
+              type="button"
+            >
+              <strong>
+                {option.label} <em>{option.meta}</em>
+              </strong>
+              <span>{option.subtitle}</span>
+            </Button>
+          ))}
+          {!matches.length && (
+            <div className="reservation-search-state">{emptyMessage}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NewReservationModal({
   close,
   saved,
@@ -1670,9 +1853,11 @@ function NewReservationModal({
   saved: () => void;
 }) {
   const [vehicleOptions, setVehicleOptions] = useState<V[]>(vehicles);
+  const [clientOptions, setClientOptions] = useState<ReservationClient[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(true);
   const [form, setForm] = useState({
-    client: "",
-    vehicleId: vehicles[0]?.id ? String(vehicles[0].id) : "",
+    clientId: "",
+    vehicleId: "",
     startsAt: "",
     endsAt: "",
     location: "Beograd • Aerodrom",
@@ -1682,24 +1867,83 @@ function NewReservationModal({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   useEffect(() => {
-    fetch("/api/vehicles")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((data) => {
-        const opts = (data.vehicles || []) as V[];
-        setVehicleOptions(opts);
-        if (opts[0])
-          setForm((f) => ({
-            ...f,
-            vehicleId: f.vehicleId || String(opts[0].id),
-          }));
-      })
-      .catch(() => {});
+    let active = true;
+    const loadOptions = async () => {
+      try {
+        const [
+          vehicleResponse,
+          clientResponse,
+          clientDeletionResponse,
+          vehicleDeletionResponse,
+        ] = await Promise.all([
+          fetch("/api/vehicles"),
+          fetch("/api/clients"),
+          fetch("/api/deletions?entity=clients"),
+          fetch("/api/deletions?entity=vehicles"),
+        ]);
+        const [
+          vehicleData,
+          clientData,
+          clientDeletionData,
+          vehicleDeletionData,
+        ] = await Promise.all([
+          vehicleResponse.json(),
+          clientResponse.json(),
+          clientDeletionResponse.json(),
+          vehicleDeletionResponse.json(),
+        ]);
+        if (
+          !vehicleResponse.ok ||
+          !clientResponse.ok ||
+          !clientDeletionResponse.ok ||
+          !vehicleDeletionResponse.ok
+        ) {
+          throw new Error("Opcije nisu učitane.");
+        }
+        if (!active) return;
+
+        const deletedPlates = new Set<string>(vehicleDeletionData.deleted || []);
+        const vehicleOpts = ((vehicleData.vehicles || []) as V[]).filter(
+          (vehicle) => !deletedPlates.has(vehicle.plate),
+        );
+        const deletedEmails = new Set<string>(
+          clientDeletionData.deleted || [],
+        );
+        const clientOpts = ((clientData.clients || []) as ReservationClient[])
+          .filter(
+            (client) =>
+              Number.isInteger(client.id) && !deletedEmails.has(client.email),
+          );
+        setVehicleOptions(vehicleOpts);
+        setClientOptions(clientOpts);
+      } catch {
+        if (active) {
+          setError(
+            "Klijenti i vozila nisu učitani. Zatvorite prozor i pokušajte ponovo.",
+          );
+        }
+      } finally {
+        if (active) setLoadingOptions(false);
+      }
+    };
+    void loadOptions();
+    return () => {
+      active = false;
+    };
   }, []);
   const set = (key: string, value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (!Number.isInteger(Number(form.clientId)) || Number(form.clientId) < 1) {
+      setError("Izaberite klijenta iz sistema.");
+      return;
+    }
+    if (!Number.isInteger(Number(form.vehicleId)) || Number(form.vehicleId) < 1) {
+      setError("Izaberite vozilo iz sistema.");
+      return;
+    }
     if (new Date(form.endsAt) <= new Date(form.startsAt)) {
       setError("Datum vraćanja mora biti posle datuma preuzimanja.");
       return;
@@ -1729,33 +1973,57 @@ function NewReservationModal({
         <small>NOVA REZERVACIJA</small>
         <h2>Kreiraj rezervaciju</h2>
         <p className="drawer-intro">
-          Unesite klijenta, vozilo i period najma. Rezervacija će biti trajno
+          Izaberite klijenta, vozilo i period najma. Rezervacija će biti trajno
           sačuvana.
         </p>
         <form onSubmit={submit}>
-          <label>
-            Ime i prezime klijenta *
-            <CustomInput
-              required
-              value={form.client}
-              onChange={(e) => set("client", e.target.value)}
-              placeholder="npr. Petar Petrović"
+          <div className="reservation-search-field">
+            <label htmlFor="reservation-client-search">Klijent *</label>
+            <ReservationEntitySearch
+              disabled={loadingOptions || clientOptions.length === 0}
+              emptyMessage="Nema klijenta koji odgovara pretrazi."
+              inputId="reservation-client-search"
+              loading={loadingOptions}
+              loadingPlaceholder="Učitavanje klijenata…"
+              noOptionsMessage="Nema unetih klijenata"
+              onSelect={(clientId) => set("clientId", clientId)}
+              options={clientOptions.map((client) => ({
+                id: client.id,
+                label: client.name,
+                meta: `ID #${client.id}`,
+                searchText: `${client.name} ${client.email} ${client.phone}`,
+                selectedText: `${client.name} — ID #${client.id}`,
+                subtitle: `${client.email} • ${client.phone}`,
+              }))}
+              placeholder="Unesite ime, email ili broj telefona"
+              value={form.clientId}
             />
-          </label>
-          <label>
-            Vozilo *
-            <CustomSelect
+          </div>
+          <div className="reservation-search-field">
+            <label htmlFor="reservation-vehicle-search">Vozilo *</label>
+            <ReservationEntitySearch
+              disabled={loadingOptions || vehicleOptions.length === 0}
+              emptyMessage="Nema vozila koje odgovara pretrazi."
+              inputId="reservation-vehicle-search"
+              loading={loadingOptions}
+              loadingPlaceholder="Učitavanje vozila…"
+              noOptionsMessage="Nema unetih vozila"
+              onSelect={(vehicleId) => set("vehicleId", vehicleId)}
+              options={vehicleOptions.map((vehicle) => {
+                const plate = displayPlate(vehicle.plate, vehicle.registered);
+                return {
+                  id: vehicle.id,
+                  label: vehicle.name,
+                  meta: plate,
+                  searchText: `${vehicle.name} ${vehicle.plate} ${plate}`,
+                  selectedText: `${vehicle.name} — ${plate}`,
+                  subtitle: `${plate} • ${vehicle.location}`,
+                };
+              })}
+              placeholder="Unesite naziv ili registracioni broj"
               value={form.vehicleId}
-              onChange={(e) => set("vehicleId", e.target.value)}
-            >
-              <option value="">Izaberite vozilo</option>
-              {vehicleOptions.map((v) => (
-                <option value={v.id} key={v.id}>
-                  {v.name} • {displayPlate(v.plate, v.registered)}
-                </option>
-              ))}
-            </CustomSelect>
-          </label>
+            />
+          </div>
           <div className="add-form-grid">
             <label>
               Preuzimanje *
@@ -1818,7 +2086,15 @@ function NewReservationModal({
             <Button type="button" variant="outline" onClick={close}>
               Otkaži
             </Button>
-            <Button variant="primary" disabled={saving}>
+            <Button
+              variant="primary"
+              disabled={
+                saving ||
+                loadingOptions ||
+                clientOptions.length === 0 ||
+                vehicleOptions.length === 0
+              }
+            >
               {saving ? "Čuvanje…" : "Kreiraj rezervaciju"}
             </Button>
           </div>
@@ -3201,12 +3477,22 @@ function Finance({
         .includes(q.toLowerCase()) &&
       (kind === "Sve transakcije" || x.kind === kind) &&
       (status === "Svi statusi" || x.status === status) &&
-      (location === "Sve lokacije" || x.location === location),
+      (location === "Sve lokacije" || x.location.startsWith(location)),
   );
   const reset = () => {
     setQ("");
     setKind("Sve transakcije");
     setStatus("Svi statusi");
+    setLocation("Sve lokacije");
+  };
+  const showFinanceRows = (
+    nextKind: string,
+    nextStatus: string,
+    query = "",
+  ) => {
+    setQ(query);
+    setKind(nextKind);
+    setStatus(nextStatus);
     setLocation("Sve lokacije");
   };
   const paid = all.filter((x) => x.status === "Plaćeno");
@@ -3217,11 +3503,68 @@ function Finance({
     .filter((x) => x.kind === "Rashod")
     .reduce((sum, x) => sum + x.amount, 0);
   const pending = all
-    .filter((x) => x.status === "Na čekanju")
+    .filter((x) => x.status === "Na čekanju" && x.kind === "Prihod")
     .reduce((sum, x) => sum + x.amount, 0);
-  const rentals = all.filter(
+  const rentals = paid.filter(
     (x) => x.kind === "Prihod" && x.category.toLowerCase().includes("najam"),
   );
+  const now = new Date();
+  const monthlySeries = Array.from({ length: period }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (period - 1 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    const rows = paid.filter((item) => item.date.startsWith(key));
+    return {
+      label: date.toLocaleDateString("sr-Latn-RS", { month: "short" }),
+      income: rows
+        .filter((item) => item.kind === "Prihod")
+        .reduce((sum, item) => sum + item.amount, 0),
+      expenses: rows
+        .filter((item) => item.kind === "Rashod")
+        .reduce((sum, item) => sum + item.amount, 0),
+    };
+  });
+  const chartMaximum = Math.max(
+    0,
+    ...monthlySeries.flatMap((item) => [item.income, item.expenses]),
+  );
+  const locationIncome = new Map(
+    ["Beograd", "Novi Sad", "Niš"].map((city) => [
+      city,
+      paid
+        .filter(
+          (item) =>
+            item.kind === "Prihod" && item.location.split(" • ")[0] === city,
+        )
+        .reduce((sum, item) => sum + item.amount, 0),
+    ]),
+  );
+  const locationIncomeTotal = Array.from(locationIncome.values()).reduce(
+    (sum, amount) => sum + amount,
+    0,
+  );
+  const beogradShare = locationIncomeTotal
+    ? ((locationIncome.get("Beograd") || 0) / locationIncomeTotal) * 100
+    : 0;
+  const noviSadShare = locationIncomeTotal
+    ? ((locationIncome.get("Novi Sad") || 0) / locationIncomeTotal) * 100
+    : 0;
+  const nisShare = locationIncomeTotal
+    ? ((locationIncome.get("Niš") || 0) / locationIncomeTotal) * 100
+    : 0;
+  const visibleLocationIncome =
+    location === "Sve lokacije"
+      ? locationIncomeTotal
+      : locationIncome.get(location) || 0;
+  const cycleLocation = () =>
+    setLocation((current) =>
+      current === "Sve lokacije"
+        ? "Beograd"
+        : current === "Beograd"
+          ? "Novi Sad"
+          : current === "Novi Sad"
+            ? "Niš"
+            : "Sve lokacije",
+    );
   const financeKpis = [
     [
       "Ukupan prihod",
@@ -3282,15 +3625,12 @@ function Finance({
       <Kpis
         items={financeKpis}
         actions={[
-          () => setKind("Prihod"),
-          () => setKind("Prihod"),
-          () => setKind("Rashod"),
+          () => showFinanceRows("Prihod", "Plaćeno"),
+          () => showFinanceRows("Prihod", "Plaćeno"),
+          () => showFinanceRows("Rashod", "Plaćeno"),
           reset,
-          () => setStatus("Na čekanju"),
-          () => {
-            setKind("Prihod");
-            setQ("Najam");
-          },
+          () => showFinanceRows("Prihod", "Na čekanju"),
+          () => showFinanceRows("Prihod", "Plaćeno", "Najam"),
         ]}
       />
       <div className="finance-grid">
@@ -3300,26 +3640,33 @@ function Finance({
               <h2>Prihodi i rashodi</h2>
               <p>Poslednjih {period} meseci</p>
             </div>
-            <Button onClick={() => setPeriod((p) => (p === 6 ? 12 : 3))}>
+            <Button
+              onClick={() =>
+                setPeriod((current) =>
+                  current === 6 ? 12 : current === 12 ? 3 : 6,
+                )
+              }
+            >
               {period} meseci
               <ChevronDownIcon className="button-icon button-icon-right" aria-hidden="true" />
             </Button>
           </div>
           <div className="bar-chart">
-            {(period === 3
-              ? [
-                  [0, 0],
-                  [0, 0],
-                  [0, 0],
-                ]
-              : period === 6
-                ? Array(6).fill([0, 0])
-                : Array(12).fill([0, 0])
-            ).map((b, i) => (
-              <div key={i}>
-                <i style={{ height: b[0] * 1.4 }} />
-                <em style={{ height: b[1] * 1.4 }} />
-                <span>{i + 1}</span>
+            {monthlySeries.map((item) => (
+              <div key={item.label}>
+                <i
+                  title={`Prihod: ${item.income.toLocaleString("sr-RS")} RSD`}
+                  style={{
+                    height: `${chartMaximum ? (item.income / chartMaximum) * 100 : 0}%`,
+                  }}
+                />
+                <em
+                  title={`Rashod: ${item.expenses.toLocaleString("sr-RS")} RSD`}
+                  style={{
+                    height: `${chartMaximum ? (item.expenses / chartMaximum) * 100 : 0}%`,
+                  }}
+                />
+                <span>{item.label}</span>
               </div>
             ))}
           </div>
@@ -3328,32 +3675,28 @@ function Finance({
           className="panel donut-panel clickable-chart"
           role="button"
           tabIndex={0}
-          onClick={() =>
-            setLocation((l) =>
-              l === "Beograd"
-                ? "Novi Sad"
-                : l === "Novi Sad"
-                  ? "Niš"
-                  : "Beograd",
-            )
-          }
-          onKeyDown={onKeyboardAction(() =>
-            setLocation((l) =>
-              l === "Beograd"
-                ? "Novi Sad"
-                : l === "Novi Sad"
-                  ? "Niš"
-                  : "Beograd",
-            ),
-          )}
+          onClick={cycleLocation}
+          onKeyDown={onKeyboardAction(cycleLocation)}
         >
           <h2>Prihod po lokaciji</h2>
-          <div className="donut">
+          <div
+            className="donut"
+            style={{
+              background: locationIncomeTotal
+                ? `conic-gradient(var(--theme-accent-3b71f3, #3b71f3) 0 ${beogradShare}%, #805bd9 ${beogradShare}% ${beogradShare + noviSadShare}%, #2aa7bd ${beogradShare + noviSadShare}% ${beogradShare + noviSadShare + nisShare}%)`
+                : "var(--theme-subtle, #e9edf4)",
+            }}
+          >
             <b>
-              0<small>RSD</small>
+              {visibleLocationIncome.toLocaleString("sr-RS")}
+              <small>RSD</small>
             </b>
           </div>
-          <p>Nema podataka po lokaciji</p>
+          <p>
+            {location === "Sve lokacije"
+              ? "Ukupan prihod po poslovnicama"
+              : `Prihod • ${location}`}
+          </p>
           <small>Kliknite za filter lokacije</small>
         </section>
       </div>
@@ -3487,7 +3830,7 @@ function TransactionForm({
     category: "Najam",
     kind: "Prihod",
     amount: "",
-    date: "2026-08-25",
+    date: new Date().toLocaleDateString("sv-SE"),
     location: "Beograd",
     status: "Plaćeno",
     paymentMethod: "Kartica",
@@ -3636,6 +3979,7 @@ function TransactionPanel({
   saved: (r: string, s: string) => void;
 }) {
   const linked = item.reference.startsWith("AUTO-");
+  const linkedReservation = item.reference.startsWith("AUTO-RES-");
   const [status, setStatus] = useState(item.status);
   const [saving, setSaving] = useState(false);
   const save = async () => {
@@ -3705,8 +4049,9 @@ function TransactionPanel({
         </Button>
         {linked && (
           <div className="active-filter-note">
-            Automatski povezano sa servisnim zapisom. Izmene izvršite u
-            tabu Servisi i registracije u sekciji Vozila.
+            {linkedReservation
+              ? "Automatski prihod iz završene rezervacije. Iznos i status menjaju se kroz povezanu rezervaciju."
+              : "Automatski povezano sa servisnim zapisom. Izmene izvršite u tabu Servisi i registracije u sekciji Vozila."}
           </div>
         )}
         <label className="status-control">
@@ -3728,7 +4073,9 @@ function TransactionPanel({
           disabled={saving || linked}
         >
           {linked
-            ? "Uređuje se u servisima"
+            ? linkedReservation
+              ? "Uređuje se u rezervaciji"
+              : "Uređuje se u servisima"
             : saving
               ? "Čuvanje…"
               : "Sačuvaj status"}
@@ -4153,7 +4500,7 @@ function Reports({
 }: {
   onSectionChange: (view: BusinessSectionView) => void;
 }) {
-  const [period, setPeriod] = useState("Avgust 2026");
+  const [period, setPeriod] = useState("current-month");
   const [location, setLocation] = useState("Sve poslovnice");
   const [metric, setMetric] = useState("Pregled");
   const [selected, setSelected] = useState<{
@@ -4162,26 +4509,214 @@ function Reports({
     detail: string;
   } | null>(null);
   const [sort, setSort] = useState("Prihod");
-  const utilization = [
-    ["Economy", 0],
-    ["Compact", 0],
-    ["Premium", 0],
-    ["SUV", 0],
-    ["Kombi", 0],
-  ] as [string, number][];
-  const profits = [0, 0, 0, 0, 0];
+  const [reportVehicles, setReportVehicles] = useState<V[]>([]);
+  const [reportReservations, setReportReservations] = useState<
+    ReportReservation[]
+  >([]);
+  const [reportTransactions, setReportTransactions] = useState<F[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/vehicles"),
+      fetch("/api/reservations"),
+      fetch("/api/transactions"),
+      fetch("/api/deletions?entity=vehicles"),
+    ])
+      .then(async (responses) => {
+        if (responses.some((response) => !response.ok))
+          throw new Error("Izveštaji nisu učitani.");
+        return Promise.all(responses.map((response) => response.json()));
+      })
+      .then(([vehicleData, reservationData, transactionData, deletionData]) => {
+        const deletedPlates = new Set<string>(deletionData.deleted || []);
+        setReportVehicles(
+          ((vehicleData.vehicles || []) as Array<V & { km: number }>)
+            .filter((vehicle) => !deletedPlates.has(vehicle.plate))
+            .map((vehicle) => ({
+              ...vehicle,
+              km: `${Number(vehicle.km).toLocaleString("sr-RS")} km`,
+            })),
+        );
+        setReportReservations(reservationData.reservations || []);
+        setReportTransactions(transactionData.transactions || []);
+      })
+      .catch(() => {
+        setReportVehicles([]);
+        setReportReservations([]);
+        setReportTransactions([]);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const now = new Date();
+  const monthLabel = (date: Date) => {
+    const label = date.toLocaleDateString("sr-Latn-RS", {
+      month: "long",
+      year: "numeric",
+    });
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  };
+  const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  const periodOptions = [
+    {
+      key: "current-month",
+      label: monthLabel(now),
+      start: new Date(now.getFullYear(), now.getMonth(), 1),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    },
+    {
+      key: "previous-month",
+      label: monthLabel(previousMonth),
+      start: previousMonth,
+      end: new Date(now.getFullYear(), now.getMonth(), 1),
+    },
+    {
+      key: "quarter",
+      label: `Q${Math.floor(now.getMonth() / 3) + 1} ${now.getFullYear()}`,
+      start: new Date(now.getFullYear(), quarterStartMonth, 1),
+      end: new Date(now.getFullYear(), quarterStartMonth + 3, 1),
+    },
+    {
+      key: "year",
+      label: `${now.getFullYear()}. godina`,
+      start: new Date(now.getFullYear(), 0, 1),
+      end: new Date(now.getFullYear() + 1, 0, 1),
+    },
+  ];
+  const selectedPeriod =
+    periodOptions.find((option) => option.key === period) || periodOptions[0];
+  const periodLabel = selectedPeriod.label;
+  const matchesLocation = (value: string) =>
+    location === "Sve poslovnice" || value.startsWith(location);
+  const inPeriod = (value: string) => {
+    const date = new Date(`${value.slice(0, 10)}T12:00:00`);
+    return date >= selectedPeriod.start && date < selectedPeriod.end;
+  };
+  const visibleVehicles = reportVehicles.filter((vehicle) =>
+    matchesLocation(vehicle.location),
+  );
+  const visibleReservations = reportReservations.filter((reservation) => {
+    const startsAt = new Date(reservation.startsAt);
+    const endsAt = new Date(reservation.endsAt);
+    return (
+      reservation.status !== "Otkazana" &&
+      matchesLocation(reservation.location) &&
+      startsAt < selectedPeriod.end &&
+      endsAt >= selectedPeriod.start
+    );
+  });
+  const visibleTransactions = reportTransactions.filter(
+    (transaction) =>
+      transaction.status === "Plaćeno" &&
+      inPeriod(transaction.date) &&
+      matchesLocation(transaction.location),
+  );
+  const incomeTransactions = visibleTransactions.filter(
+    (transaction) => transaction.kind === "Prihod",
+  );
+  const totalIncome = incomeTransactions.reduce(
+    (sum, transaction) => sum + transaction.amount,
+    0,
+  );
+  const rangeDays = Math.max(
+    1,
+    (selectedPeriod.end.getTime() - selectedPeriod.start.getTime()) / 86400000,
+  );
+  const reservationDays = (reservation: ReportReservation) =>
+    Math.max(
+      0,
+      (Math.min(new Date(reservation.endsAt).getTime(), selectedPeriod.end.getTime()) -
+        Math.max(new Date(reservation.startsAt).getTime(), selectedPeriod.start.getTime())) /
+        86400000,
+    );
+  const vehicleMetrics = visibleVehicles.map((vehicle) => {
+    const reservationsForVehicle = visibleReservations.filter(
+      (reservation) => reservation.vehicleId === vehicle.id,
+    );
+    const occupiedDays = reservationsForVehicle.reduce(
+      (sum, reservation) => sum + reservationDays(reservation),
+      0,
+    );
+    const revenue = incomeTransactions
+      .filter((transaction) => transaction.vehicleId === vehicle.id)
+      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    return {
+      vehicle,
+      reservations: reservationsForVehicle.length,
+      revenue,
+      utilization: Math.min(100, Math.round((occupiedDays / rangeDays) * 100)),
+    };
+  });
+  const occupiedFleetDays = visibleReservations.reduce(
+    (sum, reservation) => sum + reservationDays(reservation),
+    0,
+  );
+  const fleetUtilization = visibleVehicles.length
+    ? Math.min(
+        100,
+        Math.round(
+          (occupiedFleetDays / (visibleVehicles.length * rangeDays)) * 100,
+        ),
+      )
+    : 0;
+  const averageDuration = visibleReservations.length
+    ? visibleReservations.reduce(
+        (sum, reservation) =>
+          sum +
+          Math.max(
+            0,
+            (new Date(reservation.endsAt).getTime() -
+              new Date(reservation.startsAt).getTime()) /
+              86400000,
+          ),
+        0,
+      ) / visibleReservations.length
+    : 0;
+  const profitableVehicles = [...vehicleMetrics].sort(
+    (first, second) => second.revenue - first.revenue,
+  );
+  const topVehicle = profitableVehicles.find((item) => item.revenue > 0);
+  const averageRevenuePerVehicle = visibleVehicles.length
+    ? Math.round(totalIncome / visibleVehicles.length)
+    : 0;
+  const utilizationRows = [...vehicleMetrics]
+    .sort((first, second) => second.utilization - first.utilization)
+    .slice(0, 5);
+  const rankingRows = [...vehicleMetrics]
+    .sort((first, second) =>
+      sort === "Prihod"
+        ? second.revenue - first.revenue
+        : second.utilization - first.utilization,
+    )
+    .slice(0, 5);
+  const trend = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (5 - index), 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    return {
+      key,
+      label: date.toLocaleDateString("sr-Latn-RS", { month: "short" }),
+      count: reportReservations.filter(
+        (reservation) =>
+          reservation.status !== "Otkazana" &&
+          matchesLocation(reservation.location) &&
+          reservation.startsAt.startsWith(key),
+      ).length,
+    };
+  });
+  const trendMaximum = Math.max(1, ...trend.map((item) => item.count));
   const exportCsv = () => {
     const rows = [
-      ["DNFM Izveštaj", period, location],
-      ["Vozilo", "Tablice", "Iskorišćenost", "Prihod RSD"],
-      ...vehicles
-        .slice(0, 5)
-        .map((v, i) => [
-          v.name,
-          displayPlate(v.plate, v.registered),
-          `${utilization[i][1]}%`,
-          String(profits[i]),
-        ]),
+      ["DNFM Izveštaj", periodLabel, location],
+      ["Vozilo", "Tablice", "Iskorišćenost", "Rezervacije", "Prihod RSD"],
+      ...vehicleMetrics.map((item) => [
+        item.vehicle.name,
+        displayPlate(item.vehicle.plate, item.vehicle.registered),
+        `${item.utilization}%`,
+        String(item.reservations),
+        String(item.revenue),
+      ]),
     ];
     const url = URL.createObjectURL(
       new Blob(
@@ -4194,16 +4729,38 @@ function Reports({
     );
     const a = document.createElement("a");
     a.href = url;
-    a.download = `DNFM_izvestaj_${period.replace(/\s/g, "_")}.csv`;
+    a.download = `DNFM_izvestaj_${periodLabel.replace(/\s/g, "_")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
   const details = [
-    { title: "Iskorišćenost flote", value: "0%", detail: "Nema podataka." },
-    { title: "Prihod po vozilu", value: "0 RSD", detail: "Nema podataka." },
-    { title: "Broj rezervacija", value: "0", detail: "Nema podataka." },
-    { title: "Prosečno trajanje", value: "0 dana", detail: "Nema podataka." },
-    { title: "Najprofitabilnije", value: "—", detail: "Nema podataka." },
+    {
+      title: "Iskorišćenost flote",
+      value: `${fleetUtilization}%`,
+      detail: `${visibleReservations.length} rezervacija u periodu ${periodLabel}.`,
+    },
+    {
+      title: "Prihod po vozilu",
+      value: `${averageRevenuePerVehicle.toLocaleString("sr-RS")} RSD`,
+      detail: `Ukupan prihod ${totalIncome.toLocaleString("sr-RS")} RSD raspoređen na ${visibleVehicles.length} vozila.`,
+    },
+    {
+      title: "Broj rezervacija",
+      value: String(visibleReservations.length),
+      detail: `Rezervacije koje se preklapaju sa periodom ${periodLabel}.`,
+    },
+    {
+      title: "Prosečno trajanje",
+      value: `${averageDuration.toLocaleString("sr-RS", { maximumFractionDigits: 1 })} dana`,
+      detail: "Prosečno ugovoreno trajanje rezervacije.",
+    },
+    {
+      title: "Najprofitabilnije",
+      value: topVehicle?.vehicle.name || "—",
+      detail: topVehicle
+        ? `${topVehicle.revenue.toLocaleString("sr-RS")} RSD prihoda.`
+        : "Nema prihoda povezanog sa vozilima.",
+    },
     { title: "Ocena klijenata", value: "—", detail: "Nema recenzija." },
   ];
   return (
@@ -4217,10 +4774,11 @@ function Reports({
         </div>
         <div className="report-actions">
           <CustomSelect value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option>Avgust 2026</option>
-            <option>Jul 2026</option>
-            <option>Q3 2026</option>
-            <option>2026. godina</option>
+            {periodOptions.map((option) => (
+              <option value={option.key} key={option.key}>
+                {option.label}
+              </option>
+            ))}
           </CustomSelect>
           <CustomSelect
             value={location}
@@ -4243,11 +4801,43 @@ function Reports({
       <BusinessSectionTabs active="reports" onChange={onSectionChange} />
       <Kpis
         items={[
-          ["Iskorišćenost flote", "0%", "nema podataka", "—", "green"],
-          ["Prihod po vozilu", "0 RSD", "nema podataka", "—", "blue"],
-          ["Broj rezervacija", "0", "nema rezervacija", "—", "violet"],
-          ["Prosečno trajanje", "0 dana", "nema podataka", "—", "cyan"],
-          ["Najprofitabilnije", "—", "nema vozila", "—", "amber"],
+          [
+            "Iskorišćenost flote",
+            `${fleetUtilization}%`,
+            loading ? "učitavanje" : `${visibleReservations.length} rezervacija`,
+            "",
+            "green",
+          ],
+          [
+            "Prihod po vozilu",
+            `${averageRevenuePerVehicle.toLocaleString("sr-RS")} RSD`,
+            `${totalIncome.toLocaleString("sr-RS")} RSD ukupno`,
+            "",
+            "blue",
+          ],
+          [
+            "Broj rezervacija",
+            String(visibleReservations.length),
+            periodLabel,
+            "",
+            "violet",
+          ],
+          [
+            "Prosečno trajanje",
+            `${averageDuration.toLocaleString("sr-RS", { maximumFractionDigits: 1 })} dana`,
+            "po rezervaciji",
+            "",
+            "cyan",
+          ],
+          [
+            "Najprofitabilnije",
+            topVehicle?.vehicle.name || "—",
+            topVehicle
+              ? `${topVehicle.revenue.toLocaleString("sr-RS")} RSD`
+              : "nema prihoda",
+            "",
+            "amber",
+          ],
           ["Ocena klijenata", "—", "nema recenzija", "—", "green"],
         ]}
         actions={details.map((d) => () => {
@@ -4258,7 +4848,7 @@ function Reports({
       <div className="report-filter-note">
         <b>{metric}</b>
         <span>
-          {period} • {location}
+          {periodLabel} • {location}
         </span>
         <Button onClick={() => setMetric("Pregled")}>Resetuj pregled</Button>
       </div>
@@ -4267,39 +4857,42 @@ function Reports({
           <div className="panel-head">
             <div>
               <h2>Iskorišćenost flote</h2>
-              <p>Kliknite na kategoriju za detalje</p>
+              <p>Iskorišćenost po vozilu</p>
             </div>
             <CustomSelect value={sort} onChange={(e) => setSort(e.target.value)}>
               <option>Prihod</option>
               <option>Iskorišćenost</option>
             </CustomSelect>
           </div>
-          {utilization.map((x) => (
+          {utilizationRows.map((item) => (
             <Button
               className="progress-row report-row"
-              key={x[0]}
+              key={item.vehicle.id}
               onClick={() =>
                 setSelected({
-                  title: x[0],
-                  value: `${x[1]}%`,
-                  detail: `Kategorija ${x[0]} ima ${x[1]}% iskorišćenosti u periodu ${period} za lokaciju ${location}.`,
+                  title: item.vehicle.name,
+                  value: `${item.utilization}%`,
+                  detail: `${displayPlate(item.vehicle.plate, item.vehicle.registered)} • ${item.reservations} rezervacija • ${periodLabel}.`,
                 })
               }
             >
-              <span>{x[0]}</span>
+              <span title={item.vehicle.name}>{item.vehicle.name}</span>
               <i>
-                <em style={{ width: `${x[1]}%` }} />
+                <em style={{ width: `${item.utilization}%` }} />
               </i>
-              <b>{x[1]}%</b>
+              <b>{item.utilization}%</b>
             </Button>
           ))}
+          {!loading && !utilizationRows.length && (
+            <EmptyState>Nema vozila za izabrani period i poslovnicu.</EmptyState>
+          )}
         </section>
         <section className="panel">
           <div className="panel-head">
             <div>
               <h2>Najprofitabilnija vozila</h2>
               <p>
-                {sort} • {period}
+                {sort} • {periodLabel}
               </p>
             </div>
             <Button
@@ -4310,29 +4903,41 @@ function Reports({
               Promeni rangiranje
             </Button>
           </div>
-          {vehicles.slice(0, 5).map((v, i) => (
+          {rankingRows.map((item, index) => (
             <Button
               className="ranking report-ranking"
-              key={v.plate}
+              key={item.vehicle.id}
               onClick={() =>
                 setSelected({
-                  title: v.name,
-                  value: `${profits[i].toLocaleString("sr-RS")} RSD`,
-                  detail: `${displayPlate(v.plate, v.registered)} • ${v.location}. Vozilo ima ${utilization[i][1]}% iskorišćenosti i ${v.status.toLowerCase()} status.`,
+                  title: item.vehicle.name,
+                  value:
+                    sort === "Prihod"
+                      ? `${item.revenue.toLocaleString("sr-RS")} RSD`
+                      : `${item.utilization}%`,
+                  detail: `${displayPlate(item.vehicle.plate, item.vehicle.registered)} • ${item.vehicle.location}. ${item.reservations} rezervacija i ${item.revenue.toLocaleString("sr-RS")} RSD prihoda.`,
                 })
               }
             >
-              <b>0{i + 1}</b>
+              <b>{String(index + 1).padStart(2, "0")}</b>
               <span className="car-thumb">
                 <VehicleIcon aria-hidden="true" />
               </span>
               <div>
-                <strong>{v.name}</strong>
-                <small>{displayPlate(v.plate, v.registered)}</small>
+                <strong>{item.vehicle.name}</strong>
+                <small>
+                  {displayPlate(item.vehicle.plate, item.vehicle.registered)}
+                </small>
               </div>
-              <em>{profits[i].toLocaleString("sr-RS")} RSD</em>
+              <em>
+                {sort === "Prihod"
+                  ? `${item.revenue.toLocaleString("sr-RS")} RSD`
+                  : `${item.utilization}%`}
+              </em>
             </Button>
           ))}
+          {!loading && !rankingRows.length && (
+            <EmptyState>Nema vozila za rangiranje.</EmptyState>
+          )}
         </section>
       </div>
       <div className="report-bottom">
@@ -4344,19 +4949,23 @@ function Reports({
             </div>
           </div>
           <div className="mini-bars">
-            {[0, 0, 0, 0, 0, 0].map((x, i) => (
+            {trend.map((item) => (
               <Button
-                key={i}
+                key={item.key}
                 onClick={() =>
                   setSelected({
-                    title: ["Mar", "Apr", "Maj", "Jun", "Jul", "Avg"][i],
-                    value: `${Math.round(x * 3)} rezervacija`,
-                    detail: `Detaljan broj rezervacija za mesec ${["mart", "april", "maj", "jun", "jul", "avgust"][i]} 2026.`,
+                    title: item.label,
+                    value: `${item.count} rezervacija`,
+                    detail: `Broj novih rezervacija u mesecu ${item.label}.`,
                   })
                 }
               >
-                <i style={{ height: `${x}%` }} />
-                <span>{["Mar", "Apr", "Maj", "Jun", "Jul", "Avg"][i]}</span>
+                <i
+                  style={{
+                    height: `${item.count ? Math.max(8, (item.count / trendMaximum) * 100) : 0}%`,
+                  }}
+                />
+                <span>{item.label}</span>
               </Button>
             ))}
           </div>
@@ -4388,7 +4997,7 @@ function Reports({
       {selected && (
         <ReportPanel
           item={selected}
-          period={period}
+          period={periodLabel}
           location={location}
           close={() => setSelected(null)}
           exportCsv={exportCsv}
@@ -5153,6 +5762,7 @@ function App() {
           if (row)
             setB({
               id: row.code,
+              clientId: row.clientId ?? null,
               vehicleId: row.vehicleId ?? null,
               client: row.client,
               vehicle: row.vehicle,

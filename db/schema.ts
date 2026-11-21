@@ -31,6 +31,7 @@ export const reservations = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
     vehicleId: integer("vehicle_id"),
+    clientId: integer("client_id"),
     client: text("client").notNull(),
     vehicle: text("vehicle").notNull(),
     startsAt: text("starts_at").notNull(),
@@ -45,6 +46,7 @@ export const reservations = sqliteTable(
   (table) => [
     uniqueIndex("idx_reservations_code").on(table.code),
     index("idx_reservations_vehicle_id").on(table.vehicleId),
+    index("idx_reservations_client_id").on(table.clientId),
   ],
 );
 
