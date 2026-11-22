@@ -72,6 +72,8 @@ test("shared helpers preserve input and display boundaries", async () => {
   });
   const {
     clean,
+    calculateFleetAvailability,
+    calculateVehicleStatuses,
     displayPlate,
     formatDate,
     bookingDate,
@@ -95,6 +97,84 @@ test("shared helpers preserve input and display boundaries", async () => {
   assert.equal(reservationBlocksVehicle("Aktivna"), true);
   assert.equal(reservationBlocksVehicle("Završena"), false);
   assert.equal(reservationBlocksVehicle("Otkazana"), false);
+  const calculatedStatuses = calculateVehicleStatuses(
+    [
+      { id: 1, name: "Servis", plate: "T-1" },
+      { id: 2, name: "Van upotrebe", plate: "T-2", outOfService: true },
+      { id: 3, name: "Arhiva", plate: "T-3", archivedAt: "2026-11-22" },
+      { id: 4, name: "Rezervisano", plate: "T-4" },
+      { id: 5, name: "Iznajmljeno", plate: "T-5" },
+      { id: 6, name: "Dostupno", plate: "T-6" },
+      { id: 7, name: "Isti model", plate: "T-7" },
+      { id: 8, name: "Isti model", plate: "T-8" },
+    ],
+    [
+      { vehicleId: 1, vehicle: "Servis", status: "Aktivna" },
+      { vehicleId: 2, vehicle: "Van upotrebe", status: "Aktivna" },
+      { vehicleId: 3, vehicle: "Arhiva", status: "Aktivna" },
+      { vehicleId: 4, vehicle: "Rezervisano", status: "Potvrđena" },
+      { vehicleId: 5, vehicle: "Iznajmljeno", status: "Povrat danas" },
+      { vehicleId: null, vehicle: "Isti model", status: "Potvrđena" },
+    ],
+    [{ vehicleId: 1, plate: "T-1", status: "U toku" }],
+  );
+  assert.deepEqual(
+    Array.from(calculatedStatuses.values()),
+    [
+      "Na servisu",
+      "Van upotrebe",
+      "Arhivirano",
+      "Rezervisano",
+      "Iznajmljeno",
+      "Dostupno",
+      "Dostupno",
+      "Dostupno",
+    ],
+  );
+  const fleetAvailability = calculateFleetAvailability(
+    [
+      { id: 1, name: "Rezervacija", plate: "A-1", registered: true, registrationExpiresAt: "2027-12-31" },
+      { id: 2, name: "Servis", plate: "A-2", registered: true, registrationExpiresAt: "2027-12-31" },
+      { id: 3, name: "Šteta", plate: "A-3", registered: true, registrationExpiresAt: "2027-12-31" },
+      { id: 4, name: "Neregistrovano", plate: "A-4", registered: false },
+      { id: 5, name: "Istek", plate: "A-5", registered: true, registrationExpiresAt: "2026-12-10" },
+      { id: 6, name: "Arhiva", plate: "A-6", registered: true, registrationExpiresAt: "2027-12-31", archivedAt: "2026-01-01" },
+      { id: 7, name: "Zabrana", plate: "A-7", registered: true, registrationExpiresAt: "2027-12-31", outOfService: true },
+      { id: 8, name: "Blokada", plate: "A-8", registered: true, registrationExpiresAt: "2027-12-31" },
+      { id: 9, name: "Slobodno", plate: "A-9", registered: true, registrationExpiresAt: "2027-12-31" },
+      { id: 10, name: "Nepoznata registracija", plate: "A-10", registered: true },
+    ],
+    [
+      { vehicleId: 1, vehicle: "Rezervacija", startsAt: "2026-12-10T10:00", endsAt: "2026-12-11T10:00", status: "Potvrđena", code: "R-1" },
+    ],
+    [
+      { vehicleId: 2, plate: "A-2", dueDate: "2026-12-11", endsAt: "2026-12-12", status: "Planirano" },
+      { vehicleId: 9, plate: "A-9", dueDate: "2027-01-01", endsAt: "2027-01-01", status: "Planirano" },
+    ],
+    [{ vehicleId: 3, plate: "A-3", status: "U obradi" }],
+    [{ vehicleId: 8, startsAt: "2026-12-10T12:00", endsAt: "2026-12-11T12:00", status: "Aktivna" }],
+    "2026-12-10T09:00",
+    "2026-12-12T09:00",
+  );
+  assert.deepEqual(
+    Array.from(fleetAvailability, ([vehicleId, result]) => [
+      vehicleId,
+      result.available,
+      result.reasons.map((reason) => reason.code),
+    ]),
+    [
+      [1, false, ["RESERVATION_OVERLAP"]],
+      [2, false, ["SERVICE_OVERLAP"]],
+      [3, false, ["ACTIVE_DAMAGE"]],
+      [4, false, ["UNREGISTERED"]],
+      [5, false, ["REGISTRATION_EXPIRES"]],
+      [6, false, ["ARCHIVED"]],
+      [7, false, ["OUT_OF_SERVICE"]],
+      [8, false, ["MANUAL_BLOCK"]],
+      [9, true, []],
+      [10, false, ["REGISTRATION_UNKNOWN"]],
+    ],
+  );
   assert.equal(
     reservationPeriodsOverlap(
       "2026-11-01T10:00",
@@ -115,7 +195,7 @@ test("shared helpers preserve input and display boundaries", async () => {
   );
   for (const [status, expected] of [
     ["Dostupno", "green"], ["Aktivna", "blue"], ["U toku", "blue"],
-    ["Na servisu", "red"], ["Uskoro", "red"], ["Potvrđena", "violet"],
+    ["Na servisu", "red"], ["Van upotrebe", "red"], ["Uskoro", "red"], ["Potvrđena", "violet"],
     ["Rezervisano", "violet"], ["Otkazana", "amber"], [undefined, "amber"],
   ]) assert.equal(statusTone(status), expected);
 

@@ -4,6 +4,11 @@ import { getDb } from "../../../db";
 import { serviceRecords, vehicles } from "../../../db/schema";
 
 const allowed = ["Planirano", "Uskoro", "U toku", "Završeno", "Otkazano"];
+const validPeriod = (startsAt: string, endsAt: string) => {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  return Number.isFinite(start.getTime()) && Number.isFinite(end.getTime()) && end >= start;
+};
 
 export async function GET() {
   try {
@@ -40,8 +45,10 @@ export async function POST(request: Request) {
       ? await db.select().from(vehicles).where(eq(vehicles.id, vehicleId))
       : [];
     if (!linkedVehicle) return Response.json({ error: "Izaberite postojeće vozilo." }, { status: 400 });
-    const values = { code: `SER-${Date.now().toString().slice(-6)}`, vehicleId, vehicle: linkedVehicle.name, plate: linkedVehicle.plate, type: clean(body.type), dueDate: clean(body.dueDate), mileage: Number(body.mileage) || 0, cost: Number(body.cost) || 0, workshop: clean(body.workshop), status: clean(body.status) || "Planirano", notes: clean(body.notes) };
-    if (!values.vehicle || !values.plate || !values.type || !values.dueDate || values.mileage < 0 || values.cost < 0 || !allowed.includes(values.status)) return Response.json({ error: "Popunite sva obavezna polja ispravnim podacima." }, { status: 400 });
+    const dueDate = clean(body.dueDate);
+    const endsAt = clean(body.endsAt) || dueDate;
+    const values = { code: `SER-${Date.now().toString().slice(-6)}`, vehicleId, vehicle: linkedVehicle.name, plate: linkedVehicle.plate, type: clean(body.type), dueDate, endsAt, mileage: Number(body.mileage) || 0, cost: Number(body.cost) || 0, workshop: clean(body.workshop), status: clean(body.status) || "Planirano", notes: clean(body.notes) };
+    if (!values.vehicle || !values.plate || !values.type || !values.dueDate || !validPeriod(dueDate, endsAt) || values.mileage < 0 || values.cost < 0 || !allowed.includes(values.status)) return Response.json({ error: "Popunite sva obavezna polja ispravnim podacima." }, { status: 400 });
     const [service] = await db.insert(serviceRecords).values(values).returning();
     return Response.json({ service }, { status: 201 });
   } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Zapis nije sačuvan." }, { status: 500 }); }
@@ -57,8 +64,10 @@ export async function PATCH(request: Request) {
       ? await db.select().from(vehicles).where(eq(vehicles.id, vehicleId))
       : [];
     if (!linkedVehicle) return Response.json({ error: "Izaberite postojeće vozilo." }, { status: 400 });
-    const values = { vehicleId, vehicle: linkedVehicle.name, plate: linkedVehicle.plate, type: clean(body.type), dueDate: clean(body.dueDate), mileage: Number(body.mileage) || 0, cost: Number(body.cost) || 0, workshop: clean(body.workshop), status: clean(body.status), notes: clean(body.notes) };
-    if (!code || !values.vehicle || !values.plate || !values.type || !values.dueDate || !allowed.includes(values.status)) return Response.json({ error: "Podaci servisnog zapisa nisu ispravni." }, { status: 400 });
+    const dueDate = clean(body.dueDate);
+    const endsAt = clean(body.endsAt) || dueDate;
+    const values = { vehicleId, vehicle: linkedVehicle.name, plate: linkedVehicle.plate, type: clean(body.type), dueDate, endsAt, mileage: Number(body.mileage) || 0, cost: Number(body.cost) || 0, workshop: clean(body.workshop), status: clean(body.status), notes: clean(body.notes) };
+    if (!code || !values.vehicle || !values.plate || !values.type || !values.dueDate || !validPeriod(dueDate, endsAt) || !allowed.includes(values.status)) return Response.json({ error: "Podaci servisnog zapisa nisu ispravni." }, { status: 400 });
     const existing = await db.select({ id: serviceRecords.id }).from(serviceRecords).where(eq(serviceRecords.code, code)).limit(1);
     const [service] = existing.length ? await db.update(serviceRecords).set(values).where(eq(serviceRecords.code, code)).returning() : await db.insert(serviceRecords).values({ code, ...values }).returning();
     return Response.json({ service });

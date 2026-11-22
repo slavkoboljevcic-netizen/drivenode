@@ -1,15 +1,17 @@
 import { desc } from "drizzle-orm";
+import { calculateVehicleStatuses } from "../../lib";
 import { getDb } from "../../../db";
-import { clients, deletedRecords, reservations, vehicles } from "../../../db/schema";
+import { clients, deletedRecords, reservations, serviceRecords, vehicles } from "../../../db/schema";
 
 export async function GET(request: Request) {
   try {
     const query = new URL(request.url).searchParams.get("q")?.trim().toLocaleLowerCase("sr") || "";
     if (query.length < 2) return Response.json({ results: [] });
     const db = getDb();
-    const [vehicleRows, reservationRows, clientRows, deletionRows] = await Promise.all([
+    const [vehicleRows, reservationRows, serviceRows, clientRows, deletionRows] = await Promise.all([
       db.select().from(vehicles).orderBy(desc(vehicles.id)),
       db.select().from(reservations).orderBy(desc(reservations.id)),
+      db.select().from(serviceRecords).orderBy(desc(serviceRecords.id)),
       db.select().from(clients).orderBy(desc(clients.id)),
       db.select().from(deletedRecords),
     ]);
@@ -19,9 +21,18 @@ export async function GET(request: Request) {
       deleted.get(row.entity)?.add(row.recordKey);
     }
     const contains = (...values: unknown[]) => values.join(" ").toLocaleLowerCase("sr").includes(query);
-    const vehiclesById = new Map(vehicleRows.map((row) => [row.id, row]));
+    const calculatedStatuses = calculateVehicleStatuses(
+      vehicleRows,
+      reservationRows.filter((row) => !deleted.get("reservations")?.has(row.code)),
+      serviceRows.filter((row) => !deleted.get("services")?.has(row.code)),
+    );
+    const calculatedVehicles = vehicleRows.map((row) => ({
+      ...row,
+      status: calculatedStatuses.get(row.id) || "Dostupno",
+    }));
+    const vehiclesById = new Map(calculatedVehicles.map((row) => [row.id, row]));
     const results = [
-      ...vehicleRows.filter((row) => !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.plate, row.vin, row.location)).map((row) => ({ type: "vehicle", id: String(row.id), title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
+      ...calculatedVehicles.filter((row) => !row.archivedAt && !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.plate, row.vin, row.location)).map((row) => ({ type: "vehicle", id: String(row.id), title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
       ...reservationRows.filter((row) => {
         const linkedVehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined;
         return !deleted.get("reservations")?.has(row.code) && contains(row.code, row.client, linkedVehicle?.name || row.vehicle, linkedVehicle?.plate, row.location);

@@ -8,7 +8,7 @@ import CustomInput from "./CustomInput";
 import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
-type Vehicle = { id: number; name: string; plate: string; km: string; location: string; registered?: boolean };
+type Vehicle = { id: number; name: string; plate: string; km: string; location: string; registered?: boolean; archivedAt?: string | null };
 
 type Row = {
   id?: number;
@@ -17,6 +17,7 @@ type Row = {
   reference?: string;
   type?: string;
   description?: string;
+  reason?: string;
   client?: string;
   dueDate?: string;
   date?: string;
@@ -48,14 +49,17 @@ type Form = {
 const cfg = (tab: string) =>
   tab === "Servisi"
     ? { url: "/api/services", key: "services" }
-    : tab === "Troškovi"
-      ? { url: "/api/transactions", key: "transactions" }
-      : tab === "Rezervacije"
-        ? { url: "/api/reservations", key: "reservations" }
-        : { url: "/api/damages", key: "damages" };
+    : tab === "Blokade"
+      ? { url: "/api/vehicle-blocks", key: "blocks" }
+      : tab === "Troškovi"
+        ? { url: "/api/transactions", key: "transactions" }
+        : tab === "Rezervacije"
+          ? { url: "/api/reservations", key: "reservations" }
+          : { url: "/api/damages", key: "damages" };
 const keyOf = (row: Row) => String(row.code || row.reference || row.id || "");
 const titleOf = (row: Row) =>
   row.type ||
+  row.reason ||
   row.client ||
   row.description?.replace(/^\[[^\]]+\]\s*/, "") ||
   row.code ||
@@ -64,26 +68,30 @@ const titleOf = (row: Row) =>
 const statuses = (tab: string) =>
   tab === "Servisi"
     ? ["Planirano", "Uskoro", "U toku", "Završeno", "Otkazano"]
-    : tab === "Troškovi"
-      ? ["Plaćeno", "Na čekanju", "Stornirano"]
-      : tab === "Rezervacije"
-        ? [
-            "Na čekanju",
-            "Potvrđena",
-            "Aktivna",
-            "Povrat danas",
-            "Završena",
-            "Otkazana",
-          ]
-        : ["Prijavljena", "U obradi", "Popravljena", "Zatvorena"];
+    : tab === "Blokade"
+      ? ["Aktivna", "Ukinuta"]
+      : tab === "Troškovi"
+        ? ["Plaćeno", "Na čekanju", "Stornirano"]
+        : tab === "Rezervacije"
+          ? [
+              "Na čekanju",
+              "Potvrđena",
+              "Aktivna",
+              "Povrat danas",
+              "Završena",
+              "Otkazana",
+            ]
+          : ["Prijavljena", "U obradi", "Popravljena", "Zatvorena"];
 function Menu({
   row,
   open,
   remove,
+  canDelete = true,
 }: {
   row: Row;
   open: () => void;
   remove: () => void;
+  canDelete?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   return (
@@ -109,16 +117,18 @@ function Menu({
           >
             Otvori i uredi
           </Button>
-          <Button
-            variant="danger"
-            onClick={(e) => {
-              e.stopPropagation();
-              setVisible(false);
-              remove();
-            }}
-          >
-            Obriši
-          </Button>
+          {canDelete && (
+            <Button
+              variant="danger"
+              onClick={(e) => {
+                e.stopPropagation();
+                setVisible(false);
+                remove();
+              }}
+            >
+              Obriši
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -128,12 +138,14 @@ function Drawer({
   tab,
   v,
   row,
+  defaultStatus,
   close,
   saved,
 }: {
   tab: string;
   v: Vehicle;
   row: Row | null;
+  defaultStatus?: string;
   close: () => void;
   saved: () => void;
 }) {
@@ -141,12 +153,12 @@ function Drawer({
   const [form, setForm] = useState<Form>({
     title: row ? titleOf(row) : "",
     date:
-      tab === "Rezervacije"
+      tab === "Rezervacije" || tab === "Blokade"
         ? (row?.startsAt || "").slice(0, 16)
         : String(row?.dueDate || row?.date || ""),
     endDate: (row?.endsAt || "").slice(0, 16),
     amount: String(row?.cost ?? row?.amount ?? row?.price ?? 0),
-    status: row?.status || statuses(tab)[0],
+    status: row?.status || defaultStatus || statuses(tab)[0],
     notes: row?.notes || "",
     workshop: row?.workshop || "",
   });
@@ -167,11 +179,21 @@ function Drawer({
         plate: v.plate,
         type: form.title,
         dueDate: form.date,
+        endsAt: form.endDate,
         mileage: Number(v.km.replace(/\D/g, "")),
         cost: Number(form.amount),
         workshop: form.workshop,
         status: form.status,
         notes: form.notes,
+      };
+    else if (tab === "Blokade")
+      body = {
+        code: row?.code,
+        vehicleId: v.id,
+        reason: form.title,
+        startsAt: form.date,
+        endsAt: form.endDate,
+        status: form.status,
       };
     else if (tab === "Troškovi")
       body = {
@@ -242,6 +264,8 @@ function Drawer({
               ? "Klijent"
               : tab === "Servisi"
                 ? "Tip servisa"
+                : tab === "Blokade"
+                  ? "Razlog blokade"
                 : tab === "Štete"
                   ? "Opis štete"
                   : "Opis troška"}{" "}
@@ -254,34 +278,50 @@ function Drawer({
           </label>
           <div className="add-form-grid">
             <label>
-              {tab === "Rezervacije" ? "Preuzimanje" : "Datum"} *
+              {tab === "Rezervacije"
+                ? "Preuzimanje"
+                : tab === "Blokade"
+                  ? "Početak blokade"
+                  : tab === "Servisi"
+                    ? "Početak servisa"
+                    : "Datum"} *
               <CustomDatePicker
                 required
-                type={tab === "Rezervacije" ? "datetime-local" : "date"}
+                type={
+                  tab === "Rezervacije" || tab === "Blokade"
+                    ? "datetime-local"
+                    : "date"
+                }
                 value={form.date}
                 onChange={(e) => set("date", e.target.value)}
               />
             </label>
-            {tab === "Rezervacije" && (
+            {(tab === "Rezervacije" || tab === "Blokade" || tab === "Servisi") && (
               <label>
-                Vraćanje *
+                {tab === "Rezervacije"
+                  ? "Vraćanje"
+                  : tab === "Blokade"
+                    ? "Kraj blokade"
+                    : "Završetak servisa"} *
                 <CustomDatePicker
                   required
-                  type="datetime-local"
+                  type={tab === "Servisi" ? "date" : "datetime-local"}
                   value={form.endDate}
                   onChange={(e) => set("endDate", e.target.value)}
                 />
               </label>
             )}
-            <label>
-              {tab === "Rezervacije" ? "Cena" : "Iznos / procena"} (RSD)
-              <CustomInput
-                type="number"
-                min="0"
-                value={form.amount}
-                onChange={(e) => set("amount", e.target.value)}
-              />
-            </label>
+            {tab !== "Blokade" && (
+              <label>
+                {tab === "Rezervacije" ? "Cena" : "Iznos / procena"} (RSD)
+                <CustomInput
+                  type="number"
+                  min="0"
+                  value={form.amount}
+                  onChange={(e) => set("amount", e.target.value)}
+                />
+              </label>
+            )}
             <label>
               Status
               <CustomSelect
@@ -303,7 +343,7 @@ function Drawer({
               </label>
             )}
           </div>
-          {tab !== "Rezervacije" && (
+          {tab !== "Rezervacije" && tab !== "Blokade" && (
             <label>
               Napomena
               <textarea
@@ -328,13 +368,20 @@ function Drawer({
 export default function VehicleOperationsCrud({
   tab,
   v,
+  onDataChanged,
+  quickAdd = false,
+  onQuickAddOpened,
 }: {
   tab: string;
   v: Vehicle;
+  onDataChanged?: () => void;
+  quickAdd?: boolean;
+  onQuickAddOpened?: () => void;
 }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [selected, setSelected] = useState<Row | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addDefaultStatus, setAddDefaultStatus] = useState<string>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = useCallback(() => {
@@ -363,6 +410,12 @@ export default function VehicleOperationsCrud({
   useEffect(() => {
     load();
   }, [load]);
+  useEffect(() => {
+    if (!quickAdd || tab !== "Servisi") return;
+    setAddDefaultStatus("U toku");
+    setAdding(true);
+    onQuickAddOpened?.();
+  }, [onQuickAddOpened, quickAdd, tab]);
   const remove = async (row: Row) => {
     const key = keyOf(row);
     if (!confirm(`Da li sigurno želite trajno da obrišete zapis ${key}?`))
@@ -377,6 +430,7 @@ export default function VehicleOperationsCrud({
       if (!r.ok) throw new Error(d.error || "Brisanje nije uspelo.");
       setRows((x) => x.filter((y) => keyOf(y) !== key));
       if (keyOf(selected || {}) === key) setSelected(null);
+      onDataChanged?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Brisanje nije uspelo.");
     }
@@ -390,10 +444,18 @@ export default function VehicleOperationsCrud({
             {v.name} • {displayPlate(v.plate, v.registered)}
           </p>
         </div>
-        <Button variant="outline" onClick={() => setAdding(true)}>
-          <AddIcon className="button-icon" aria-hidden="true" />
-          Dodaj zapis
-        </Button>
+        {(tab !== "Blokade" || !v.archivedAt) && (
+          <Button
+            variant="outline"
+            onClick={() => {
+              setAddDefaultStatus(undefined);
+              setAdding(true);
+            }}
+          >
+            <AddIcon className="button-icon" aria-hidden="true" />
+            Dodaj zapis
+          </Button>
+        )}
       </div>
       {error && <div className="form-error">{error}</div>}
       {rows.map((row, i) => {
@@ -424,6 +486,7 @@ export default function VehicleOperationsCrud({
               row={row}
               open={() => setSelected(row)}
               remove={() => void remove(row)}
+              canDelete={tab !== "Blokade"}
             />
           </div>
         );
@@ -437,10 +500,16 @@ export default function VehicleOperationsCrud({
           tab={tab}
           v={v}
           row={null}
-          close={() => setAdding(false)}
+          defaultStatus={addDefaultStatus}
+          close={() => {
+            setAdding(false);
+            setAddDefaultStatus(undefined);
+          }}
           saved={() => {
             setAdding(false);
+            setAddDefaultStatus(undefined);
             load();
+            onDataChanged?.();
           }}
         />
       )}
@@ -453,6 +522,7 @@ export default function VehicleOperationsCrud({
           saved={() => {
             setSelected(null);
             load();
+            onDataChanged?.();
           }}
         />
       )}

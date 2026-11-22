@@ -1,4 +1,5 @@
 import { desc } from "drizzle-orm";
+import { calculateVehicleStatuses } from "../../lib";
 import { getDb } from "../../../db";
 import { clients, deletedRecords, reservations, serviceRecords, transactions, vehicles } from "../../../db/schema";
 import { buildFinancialRecords } from "../financial-records";
@@ -23,10 +24,19 @@ export async function GET() {
       if (!deleted.has(row.entity)) deleted.set(row.entity, new Set());
       deleted.get(row.entity)?.add(row.recordKey);
     }
-    const activeVehicles = vehicleRows.filter((row) => !deleted.get("vehicles")?.has(row.plate));
     const activeReservations = reservationRows.filter((row) => !deleted.get("reservations")?.has(row.code));
     const activeClients = clientRows.filter((row) => !deleted.get("clients")?.has(row.email));
     const activeServices = serviceRows.filter((row) => !deleted.get("services")?.has(row.code));
+    const activeVehicleRows = vehicleRows.filter((row) => !row.archivedAt && !deleted.get("vehicles")?.has(row.plate));
+    const calculatedStatuses = calculateVehicleStatuses(
+      vehicleRows,
+      activeReservations,
+      activeServices,
+    );
+    const activeVehicles = activeVehicleRows.map((row) => ({
+      ...row,
+      status: calculatedStatuses.get(row.id) || "Dostupno",
+    }));
     const activeTransactions = buildFinancialRecords({
       deleted: deletionRows,
       manual: transactionRows,

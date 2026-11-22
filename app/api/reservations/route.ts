@@ -5,6 +5,7 @@ import {
 } from "../../lib";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
+import { getFleetAvailability } from "../../server/vehicleAvailability";
 import {
   clients,
   deletedRecords,
@@ -43,6 +44,31 @@ const conflictResponse = (
 
 const isDatabaseConflict = (error: unknown) =>
   error instanceof Error && error.message.includes("RESERVATION_CONFLICT");
+
+const archivedVehicleResponse = () =>
+  Response.json(
+    {
+      error: "Izabrano vozilo je arhivirano i nije dostupno za nove rezervacije.",
+      code: "ARCHIVED_VEHICLE",
+    },
+    { status: 409 },
+  );
+
+const isArchivedVehicleConflict = (error: unknown) =>
+  error instanceof Error && error.message.includes("ARCHIVED_VEHICLE");
+
+const unavailableVehicleResponse = (
+  vehicle: string,
+  reasons: readonly { code: string; message: string }[],
+) =>
+  Response.json(
+    {
+      error: `Vozilo „${vehicle}“ nije dostupno u izabranom periodu: ${reasons.map((reason) => reason.message).join(" ")}`,
+      code: reasons[0]?.code || "VEHICLE_UNAVAILABLE",
+      reasons,
+    },
+    { status: 409 },
+  );
 
 async function findSelectableClient(
   db: ReturnType<typeof getDb>,
@@ -184,6 +210,7 @@ export async function POST(request: Request) {
     if (!linkedVehicle) {
       return Response.json({ error: "Izabrano vozilo više ne postoji." }, { status: 400 });
     }
+    if (linkedVehicle.archivedAt) return archivedVehicleResponse();
     const vehicle = linkedVehicle.name;
     const client = linkedClient.name;
     requestedVehicle = vehicle;
@@ -196,12 +223,17 @@ export async function POST(request: Request) {
         endsAt,
       );
       if (conflict) return conflictResponse(vehicle, conflict);
+      const availability = await getFleetAvailability(db, startsAt, endsAt);
+      const result = availability.get(vehicleId);
+      if (result && !result.available)
+        return unavailableVehicleResponse(vehicle, result.reasons);
     }
     const code = `DN-${Date.now().toString().slice(-6)}`;
     const [reservation] = await db.insert(reservations).values({ code, clientId, vehicleId, client, vehicle, startsAt, endsAt, location, status, price: Math.round(price) }).returning();
     return Response.json({ reservation }, { status: 201 });
   } catch (error) {
     if (isDatabaseConflict(error)) return conflictResponse(requestedVehicle);
+    if (isArchivedVehicleConflict(error)) return archivedVehicleResponse();
     return Response.json({ error: error instanceof Error ? error.message : "Rezervacija nije sačuvana." }, { status: 500 });
   }
 }
@@ -245,6 +277,7 @@ export async function PATCH(request: Request) {
       if (!linkedVehicle) {
         return Response.json({ error: "Izabrano vozilo više ne postoji." }, { status: 400 });
       }
+      if (linkedVehicle.archivedAt) return archivedVehicleResponse();
       proposed = {
         ...current,
         clientId,
@@ -283,6 +316,17 @@ export async function PATCH(request: Request) {
         code,
       );
       if (conflict) return conflictResponse(proposed.vehicle, conflict);
+      const availability = await getFleetAvailability(
+        db,
+        proposed.startsAt,
+        proposed.endsAt,
+        code,
+      );
+      const result = proposed.vehicleId
+        ? availability.get(proposed.vehicleId)
+        : undefined;
+      if (result && !result.available)
+        return unavailableVehicleResponse(proposed.vehicle, result.reasons);
     }
     const values = hasDetails
       ? {
@@ -305,6 +349,7 @@ export async function PATCH(request: Request) {
     return Response.json({ reservation });
   } catch (error) {
     if (isDatabaseConflict(error)) return conflictResponse(requestedVehicle);
+    if (isArchivedVehicleConflict(error)) return archivedVehicleResponse();
     return Response.json({ error: error instanceof Error ? error.message : "Status nije sačuvan." }, { status: 500 });
   }
 }

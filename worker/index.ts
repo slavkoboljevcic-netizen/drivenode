@@ -33,6 +33,9 @@ const databaseSchema = [
     fuel TEXT DEFAULT '' NOT NULL,
     transmission TEXT DEFAULT '' NOT NULL,
     is_registered INTEGER DEFAULT 1 NOT NULL,
+    registration_expires_at TEXT,
+    out_of_service INTEGER DEFAULT 0 NOT NULL,
+    archived_at TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles (plate)`,
@@ -72,6 +75,7 @@ const databaseSchema = [
     plate TEXT NOT NULL,
     type TEXT NOT NULL,
     due_date TEXT NOT NULL,
+    ends_at TEXT DEFAULT '' NOT NULL,
     mileage INTEGER DEFAULT 0 NOT NULL,
     cost INTEGER DEFAULT 0 NOT NULL,
     workshop TEXT DEFAULT '' NOT NULL,
@@ -144,15 +148,30 @@ const databaseSchema = [
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicle_damages_code ON vehicle_damages (code)`,
+  `CREATE TABLE IF NOT EXISTS vehicle_availability_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    code TEXT NOT NULL,
+    vehicle_id INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    starts_at TEXT NOT NULL,
+    ends_at TEXT NOT NULL,
+    status TEXT DEFAULT 'Aktivna' NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicle_availability_blocks_code ON vehicle_availability_blocks (code)`,
 ] as const;
 
-const relationColumns = [
-  ["reservations", "vehicle_id"],
-  ["reservations", "client_id"],
-  ["service_records", "vehicle_id"],
-  ["transactions", "vehicle_id"],
-  ["documents", "vehicle_id"],
-  ["vehicle_damages", "vehicle_id"],
+const missingColumns = [
+  ["vehicles", "archived_at", "TEXT"],
+  ["vehicles", "out_of_service", "INTEGER DEFAULT 0 NOT NULL"],
+  ["vehicles", "registration_expires_at", "TEXT"],
+  ["reservations", "vehicle_id", "INTEGER"],
+  ["reservations", "client_id", "INTEGER"],
+  ["service_records", "vehicle_id", "INTEGER"],
+  ["service_records", "ends_at", "TEXT DEFAULT '' NOT NULL"],
+  ["transactions", "vehicle_id", "INTEGER"],
+  ["documents", "vehicle_id", "INTEGER"],
+  ["vehicle_damages", "vehicle_id", "INTEGER"],
 ] as const;
 
 const relationIndexes = [
@@ -162,6 +181,7 @@ const relationIndexes = [
   `CREATE INDEX IF NOT EXISTS idx_transactions_vehicle_id ON transactions (vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_documents_vehicle_id ON documents (vehicle_id)`,
   `CREATE INDEX IF NOT EXISTS idx_vehicle_damages_vehicle_id ON vehicle_damages (vehicle_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_vehicle_availability_blocks_vehicle_id ON vehicle_availability_blocks (vehicle_id)`,
 ] as const;
 
 const relationBackfill = [
@@ -222,6 +242,10 @@ const relationBackfill = [
 const reservationProtectionSchema = [
   `DROP TRIGGER IF EXISTS prevent_reservation_overlap_insert`,
   `DROP TRIGGER IF EXISTS prevent_reservation_overlap_update`,
+  `DROP TRIGGER IF EXISTS prevent_archived_vehicle_reservation_insert`,
+  `DROP TRIGGER IF EXISTS prevent_archived_vehicle_reservation_update`,
+  `DROP TRIGGER IF EXISTS prevent_vehicle_archive_with_active_reservations`,
+  `DROP TRIGGER IF EXISTS prevent_vehicle_delete_with_linked_data`,
   `CREATE TRIGGER IF NOT EXISTS prevent_reservation_overlap_insert
   BEFORE INSERT ON reservations
   WHEN NEW.status NOT IN ('Završena', 'Otkazana')
@@ -275,18 +299,93 @@ const reservationProtectionSchema = [
   BEGIN
     SELECT RAISE(ABORT, 'RESERVATION_CONFLICT');
   END`,
+  `CREATE TRIGGER IF NOT EXISTS prevent_archived_vehicle_reservation_insert
+  BEFORE INSERT ON reservations
+  WHEN NEW.vehicle_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM vehicles
+      WHERE vehicles.id = NEW.vehicle_id
+        AND vehicles.archived_at IS NOT NULL
+    )
+  BEGIN
+    SELECT RAISE(ABORT, 'ARCHIVED_VEHICLE');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS prevent_archived_vehicle_reservation_update
+  BEFORE UPDATE OF vehicle_id, status ON reservations
+  WHEN NEW.status NOT IN ('Završena', 'Otkazana')
+    AND NEW.vehicle_id IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM vehicles
+      WHERE vehicles.id = NEW.vehicle_id
+        AND vehicles.archived_at IS NOT NULL
+    )
+  BEGIN
+    SELECT RAISE(ABORT, 'ARCHIVED_VEHICLE');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS prevent_vehicle_archive_with_active_reservations
+  BEFORE UPDATE OF archived_at ON vehicles
+  WHEN OLD.archived_at IS NULL
+    AND NEW.archived_at IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM reservations
+      WHERE reservations.vehicle_id = OLD.id
+        AND reservations.status NOT IN ('Završena', 'Otkazana')
+        AND NOT EXISTS (
+          SELECT 1 FROM deleted_records
+          WHERE deleted_records.entity = 'reservations'
+            AND deleted_records.record_key = reservations.code
+        )
+    )
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_HAS_ACTIVE_RESERVATIONS');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS prevent_vehicle_delete_with_linked_data
+  BEFORE DELETE ON vehicles
+  WHEN EXISTS (
+      SELECT 1 FROM reservations
+      WHERE reservations.vehicle_id = OLD.id
+        OR (reservations.vehicle_id IS NULL AND lower(trim(reservations.vehicle)) = lower(trim(OLD.name)))
+    )
+    OR EXISTS (
+      SELECT 1 FROM transactions
+      WHERE transactions.vehicle_id = OLD.id
+        OR (transactions.vehicle_id IS NULL AND instr(lower(transactions.description), lower(OLD.plate)) > 0)
+    )
+    OR EXISTS (
+      SELECT 1 FROM documents
+      WHERE documents.vehicle_id = OLD.id
+        OR (documents.vehicle_id IS NULL AND lower(trim(documents.linked_to)) = lower(trim(OLD.plate)))
+    )
+    OR EXISTS (
+      SELECT 1 FROM service_records
+      WHERE service_records.vehicle_id = OLD.id
+        OR (service_records.vehicle_id IS NULL AND lower(trim(service_records.plate)) = lower(trim(OLD.plate)))
+    )
+    OR EXISTS (
+      SELECT 1 FROM vehicle_damages
+      WHERE vehicle_damages.vehicle_id = OLD.id
+        OR (vehicle_damages.vehicle_id IS NULL AND lower(trim(vehicle_damages.plate)) = lower(trim(OLD.plate)))
+    )
+    OR EXISTS (
+      SELECT 1 FROM vehicle_availability_blocks
+      WHERE vehicle_availability_blocks.vehicle_id = OLD.id
+    )
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_HAS_LINKED_DATA');
+  END`,
 ] as const;
 
 let databaseInitialization: Promise<void> | undefined;
 
-async function addMissingRelationColumns(env: Env) {
-  for (const [table, column] of relationColumns) {
+async function addMissingColumns(env: Env) {
+  for (const [table, column, type] of missingColumns) {
     const result = await env.DB.prepare(`PRAGMA table_info(${table})`).all<{
       name: string;
     }>();
     if (!result.results.some((item: { name: string }) => item.name === column)) {
       await env.DB.prepare(
-        `ALTER TABLE ${table} ADD COLUMN ${column} INTEGER`,
+        `ALTER TABLE ${table} ADD COLUMN ${column} ${type}`,
       ).run();
     }
   }
@@ -298,7 +397,22 @@ function ensureDatabase(env: Env) {
       await env.DB.batch(
         databaseSchema.map((statement) => env.DB.prepare(statement)),
       );
-      await addMissingRelationColumns(env);
+      await addMissingColumns(env);
+      await env.DB.prepare(
+        `UPDATE vehicles
+         SET archived_at = COALESCE(archived_at, CURRENT_TIMESTAMP)
+         WHERE archived_at IS NULL
+           AND EXISTS (
+             SELECT 1 FROM deleted_records
+             WHERE deleted_records.entity = 'vehicles'
+               AND deleted_records.record_key = vehicles.plate
+           )`,
+      ).run();
+      await env.DB.prepare(
+        `UPDATE vehicles
+         SET out_of_service = 1
+         WHERE status = 'Van upotrebe'`,
+      ).run();
       await env.DB.batch(
         relationIndexes.map((statement) => env.DB.prepare(statement)),
       );

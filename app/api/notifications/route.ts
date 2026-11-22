@@ -92,6 +92,7 @@ export async function GET() {
       const linkedVehicle = service.vehicleId
         ? vehiclesById.get(service.vehicleId)
         : undefined;
+      if (linkedVehicle?.archivedAt) continue;
       const vehicleName = linkedVehicle?.name || service.vehicle;
       const vehiclePlate = linkedVehicle?.plate || service.plate;
       notifications.push({
@@ -214,6 +215,7 @@ export async function GET() {
     for (const vehicle of vehicleRows) {
       if (
         deleted.get("vehicles")?.has(vehicle.plate) ||
+        vehicle.archivedAt ||
         vehicle.registered
       ) continue;
       notifications.push({

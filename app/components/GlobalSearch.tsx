@@ -19,6 +19,8 @@ type Vehicle = {
   fuel: string;
   transmission: string;
   registered: boolean;
+  outOfService: boolean;
+  archivedAt?: string | null;
 };
 type Booking = {
   id: string;
@@ -109,6 +111,8 @@ export default function GlobalSearch({
         fuel: String(row.fuel || ""),
         transmission: String(row.transmission || ""),
         registered: row.registered !== false,
+        outOfService: row.outOfService === true,
+        archivedAt: row.archivedAt ? String(row.archivedAt) : null,
       });
     } else if (result.type === "reservation") {
       const row = result.data;

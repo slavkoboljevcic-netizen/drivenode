@@ -18,6 +18,11 @@ export const vehicles = sqliteTable(
     registered: integer("is_registered", { mode: "boolean" })
       .notNull()
       .default(true),
+    registrationExpiresAt: text("registration_expires_at"),
+    outOfService: integer("out_of_service", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    archivedAt: text("archived_at"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
@@ -79,6 +84,7 @@ export const serviceRecords = sqliteTable(
     plate: text("plate").notNull(),
     type: text("type").notNull(),
     dueDate: text("due_date").notNull(),
+    endsAt: text("ends_at").notNull().default(""),
     mileage: integer("mileage").notNull().default(0),
     cost: integer("cost").notNull().default(0),
     workshop: text("workshop").notNull().default(""),
@@ -199,5 +205,25 @@ export const vehicleDamages = sqliteTable(
   (table) => [
     uniqueIndex("idx_vehicle_damages_code").on(table.code),
     index("idx_vehicle_damages_vehicle_id").on(table.vehicleId),
+  ],
+);
+
+export const vehicleAvailabilityBlocks = sqliteTable(
+  "vehicle_availability_blocks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    code: text("code").notNull(),
+    vehicleId: integer("vehicle_id").notNull(),
+    reason: text("reason").notNull(),
+    startsAt: text("starts_at").notNull(),
+    endsAt: text("ends_at").notNull(),
+    status: text("status").notNull().default("Aktivna"),
+    createdAt: text("created_at")
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("idx_vehicle_availability_blocks_code").on(table.code),
+    index("idx_vehicle_availability_blocks_vehicle_id").on(table.vehicleId),
   ],
 );
