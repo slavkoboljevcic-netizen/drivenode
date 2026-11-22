@@ -7,6 +7,83 @@ export const displayPlate = (plate: string, registered?: boolean) =>
     ? "Nema tablica"
     : plate;
 
+type SearchableVehicle = {
+  name: string;
+  plate: string;
+  year: number;
+  location: string;
+  status: string;
+  vin?: string;
+  fuel?: string;
+  transmission?: string;
+  registered?: boolean;
+};
+
+const normalizeVehicleSearch = (value: string | number | undefined) =>
+  String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("sr-Latn-RS")
+    .replace(/đ/g, "dj")
+    .trim();
+
+const compactVehicleSearch = (value: string) =>
+  normalizeVehicleSearch(value).replace(/[^a-z0-9]/g, "");
+
+export const vehicleMatchesSearch = (
+  vehicle: SearchableVehicle,
+  query: string,
+) => {
+  const normalizedQuery = normalizeVehicleSearch(query);
+  if (!normalizedQuery) return true;
+
+  const fuel = normalizeVehicleSearch(vehicle.fuel);
+  const transmission = normalizeVehicleSearch(vehicle.transmission);
+  const vehicleStatus = normalizeVehicleSearch(vehicle.status);
+  const aliases = [
+    transmission.includes("automats")
+      ? "automatik automatski automatic"
+      : "",
+    transmission.includes("manuel")
+      ? "manuelac manuelni rucni menjac manual"
+      : "",
+    fuel.includes("dizel") ? "dizel diesel" : "",
+    fuel.includes("benzin") ? "benzin benzinski petrol" : "",
+    fuel.includes("hibrid") ? "hibrid hybrid" : "",
+    fuel.includes("elektr")
+      ? "elektricno elektricni struja ev electric"
+      : "",
+    vehicleStatus.includes("dostupno") ? "slobodno" : "",
+    vehicleStatus.includes("iznajmljeno") ? "zauzeto rentirano" : "",
+    vehicleStatus.includes("servisu") ? "servis odrzavanje maintenance" : "",
+    vehicle.registered === true
+      ? "registrovano registrovan registrovana sa tablicama"
+      : vehicle.registered === false
+        ? "neregistrovano neregistrovan neregistrovana bez tablica nema tablica"
+        : "",
+  ];
+  const searchable = normalizeVehicleSearch(
+    [
+      vehicle.name,
+      vehicle.plate,
+      vehicle.year,
+      vehicle.location,
+      vehicle.status,
+      vehicle.vin,
+      vehicle.fuel,
+      vehicle.transmission,
+      ...aliases,
+    ].join(" "),
+  );
+  const compactSearchable = compactVehicleSearch(searchable);
+
+  return normalizedQuery.split(/\s+/).every((term) => {
+    if (searchable.includes(term)) return true;
+    const compactTerm = compactVehicleSearch(term);
+    return compactTerm.length >= 2 && compactSearchable.includes(compactTerm);
+  });
+};
+
 export const formatDate = (value: string) => {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
@@ -43,6 +120,31 @@ export const reservationPeriodsOverlap = (
     firstEndTime > secondStartTime
   );
 };
+
+type VehicleReservationWindow = {
+  vehicleId: number | null;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+};
+
+export const vehicleIsAvailableInPeriod = (
+  vehicleId: number,
+  reservations: readonly VehicleReservationWindow[],
+  startsAt: string,
+  endsAt: string,
+) =>
+  reservations.every(
+    (reservation) =>
+      reservation.vehicleId !== vehicleId ||
+      !reservationBlocksVehicle(reservation.status) ||
+      !reservationPeriodsOverlap(
+        reservation.startsAt,
+        reservation.endsAt,
+        startsAt,
+        endsAt,
+      ),
+  );
 
 export const statusTone = (status = "") =>
   status.includes("Dostupno") ||

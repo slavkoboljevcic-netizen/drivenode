@@ -32,6 +32,105 @@
   color: var(--theme-accent-3b71f3, #3b71f3);
   cursor: pointer;
 }
+.vehicle-filters {
+  align-items: end;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+.vehicle-filters > label,
+.vehicle-availability-filter label,
+.vehicle-range-filter label {
+  align-items: stretch;
+  color: var(--theme-muted, #64748b);
+  flex-direction: column;
+  font-weight: 600;
+  gap: 6px;
+  min-width: 0;
+}
+.vehicle-filters .custom-select,
+.vehicle-filters .custom-date-picker {
+  display: block;
+  height: 38px;
+  min-width: 0;
+  width: 100%;
+}
+.vehicle-availability-filter {
+  border: 0;
+  grid-column: span 2;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+.vehicle-range-filter {
+  border: 0;
+  grid-column: span 2;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+.vehicle-availability-filter legend,
+.vehicle-range-filter legend {
+  color: var(--theme-muted, #64748b);
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.vehicle-availability-dates,
+.vehicle-range-inputs {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.vehicle-range-filter .custom-input {
+  background: var(--theme-accent-fbfdff, #fbfdff);
+  border: 1px solid var(--theme-border, #d8e1ee);
+  border-radius: 10px;
+  color: var(--theme-text, #263149);
+  height: 38px;
+  outline: 0;
+  padding: 0 11px;
+  width: 100%;
+}
+.vehicle-range-filter .custom-input:hover {
+  border-color: var(--theme-accent-cbd8f4, #cbd8f4);
+}
+.vehicle-range-filter .custom-input:focus {
+  border-color: var(--theme-accent-3b71f3, #3b71f3);
+  box-shadow: 0 0 0 3px var(--theme-accent-3b71f31a, #3b71f31a);
+}
+.vehicle-availability-filter .custom-date-picker button {
+  margin-left: 0;
+}
+.vehicle-availability-filter small,
+.vehicle-range-filter small,
+.vehicle-filters > label small {
+  color: var(--theme-muted, #64748b);
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 5px;
+}
+.vehicle-availability-filter small.error,
+.vehicle-range-filter small.error,
+.vehicle-filters > label small.error {
+  color: #d54357;
+}
+.vehicle-filters > .vehicle-sort-filter {
+  align-items: center;
+  flex-direction: row;
+  min-height: 38px;
+}
+.vehicle-filter-actions {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+  grid-column: 1 / -1;
+  min-height: 38px;
+}
+.vehicle-filter-actions button {
+  margin-left: 0;
+}
 .filter-active {
   color: var(--theme-accent-3b71f3, #3b71f3) !important;
   border-color: var(--theme-accent-a9bff5, #a9bff5) !important;
@@ -133,6 +232,30 @@
   .detail-tabs {
     overflow: auto;
     gap: 16px;
+  }
+}
+@media (max-width: 1100px) {
+  .vehicle-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 700px) {
+  .advanced-filters.vehicle-filters {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .vehicle-availability-filter {
+    grid-column: auto;
+  }
+  .vehicle-range-filter {
+    grid-column: auto;
+  }
+  .vehicle-availability-dates,
+  .vehicle-range-inputs {
+    grid-template-columns: 1fr;
+  }
+  .vehicle-filter-actions {
+    justify-content: flex-start;
   }
 }
 .kpi.clickable,

@@ -16,7 +16,12 @@ import "./styles/reports.css";
 import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
-import { displayPlate, formatDate } from "./lib";
+import {
+  displayPlate,
+  formatDate,
+  vehicleIsAvailableInPeriod,
+  vehicleMatchesSearch,
+} from "./lib";
 import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
@@ -67,6 +72,18 @@ type V = {
   fuel: string;
   transmission: string;
   registered: boolean;
+};
+
+type VehicleReservationWindow = {
+  vehicleId: number | null;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+};
+
+type VehicleServiceState = {
+  vehicleId: number | null;
+  status: string;
 };
 
 type B = {
@@ -486,6 +503,24 @@ function Vehicles({
   const { deleted } = useSoftDelete("vehicles");
   const [status, setStatus] = useState("Svi statusi");
   const [location, setLocation] = useState("Sve lokacije");
+  const [fuel, setFuel] = useState("Sva goriva");
+  const [transmission, setTransmission] = useState("Svi menjači");
+  const [registration, setRegistration] = useState("Sve registracije");
+  const [serviceState, setServiceState] = useState("Sva servisna stanja");
+  const [yearFrom, setYearFrom] = useState("");
+  const [yearTo, setYearTo] = useState("");
+  const [kmFrom, setKmFrom] = useState("");
+  const [kmTo, setKmTo] = useState("");
+  const [availableFrom, setAvailableFrom] = useState("");
+  const [availableTo, setAvailableTo] = useState("");
+  const [reservationWindows, setReservationWindows] = useState<
+    VehicleReservationWindow[]
+  >([]);
+  const [availabilityLoading, setAvailabilityLoading] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [serviceStates, setServiceStates] = useState<VehicleServiceState[]>([]);
+  const [serviceStatesLoading, setServiceStatesLoading] = useState(true);
+  const [serviceStatesError, setServiceStatesError] = useState("");
   const [more, setMore] = useState(false);
   const [sortNew, setSortNew] = useState(false);
   const [added, setAdded] = useState<V[]>([]);
@@ -506,6 +541,32 @@ function Vehicles({
       .finally(() => setLoading(false));
   }, []);
   useEffect(() => {
+    fetch("/api/reservations")
+      .then((response) =>
+        response.ok ? response.json() : Promise.reject(new Error()),
+      )
+      .then((data) => setReservationWindows(data.reservations || []))
+      .catch(() =>
+        setAvailabilityError(
+          "Dostupnost trenutno nije moguće proveriti. Pokušajte ponovo.",
+        ),
+      )
+      .finally(() => setAvailabilityLoading(false));
+  }, []);
+  useEffect(() => {
+    fetch("/api/services")
+      .then((response) =>
+        response.ok ? response.json() : Promise.reject(new Error()),
+      )
+      .then((data) => setServiceStates(data.services || []))
+      .catch(() =>
+        setServiceStatesError(
+          "Servisno stanje trenutno nije moguće proveriti.",
+        ),
+      )
+      .finally(() => setServiceStatesLoading(false));
+  }, []);
+  useEffect(() => {
     if (addTrigger > 0) {
       setShowAdd(true);
       onAddHandled();
@@ -514,16 +575,129 @@ function Vehicles({
   const all = [...added, ...vehicles]
     .filter((v) => !deleted.has(v.plate))
     .filter((v, i, a) => a.findIndex((x) => x.id === v.id) === i);
+  const locationOptions = Array.from(
+    new Set(
+      all
+        .map((vehicle) => vehicle.location.split("•", 1)[0].trim())
+        .filter(Boolean),
+    ),
+  ).sort((a, b) => a.localeCompare(b, "sr-Latn-RS"));
+  const fuelOptions = Array.from(
+    new Set([
+      "Benzin",
+      "Dizel",
+      "Hibrid",
+      "Električno",
+      "TNG",
+      ...all.map((vehicle) => vehicle.fuel).filter(Boolean),
+    ]),
+  ).sort((a, b) => a.localeCompare(b, "sr-Latn-RS"));
+  const transmissionOptions = Array.from(
+    new Set([
+      "Automatski",
+      "Manuelni",
+      ...all.map((vehicle) => vehicle.transmission).filter(Boolean),
+    ]),
+  ).sort((a, b) => a.localeCompare(b, "sr-Latn-RS"));
+  const availabilityPeriodComplete = Boolean(availableFrom && availableTo);
+  const availabilityPeriodInvalid =
+    availabilityPeriodComplete &&
+    (!Number.isFinite(new Date(availableFrom).getTime()) ||
+      !Number.isFinite(new Date(availableTo).getTime()) ||
+      new Date(availableTo).getTime() <= new Date(availableFrom).getTime());
+  const availabilityFilterApplied =
+    availabilityPeriodComplete &&
+    !availabilityPeriodInvalid &&
+    !availabilityLoading &&
+    !availabilityError;
+  const yearRangeInvalid =
+    Boolean(yearFrom && yearTo) && Number(yearFrom) > Number(yearTo);
+  const mileageRangeInvalid =
+    Boolean(kmFrom && kmTo) && Number(kmFrom) > Number(kmTo);
+  const serviceFilterApplied =
+    serviceState !== "Sva servisna stanja" &&
+    !serviceStatesLoading &&
+    !serviceStatesError;
+  const latestServiceStateByVehicle = new Map<number, string>();
+  serviceStates.forEach((record) => {
+    if (
+      record.vehicleId &&
+      !latestServiceStateByVehicle.has(record.vehicleId)
+    ) {
+      latestServiceStateByVehicle.set(record.vehicleId, record.status);
+    }
+  });
+  const serviceStateForVehicle = (vehicle: V) =>
+    vehicle.status === "Na servisu"
+      ? "U toku"
+      : latestServiceStateByVehicle.get(vehicle.id) || "Bez servisnog zapisa";
+  const mileageForVehicle = (vehicle: V) =>
+    Number(vehicle.km.replace(/\D/g, ""));
   const shown = all
     .filter(
       (v) =>
-        (v.name + v.plate + v.location)
-          .toLowerCase()
-          .includes(q.toLowerCase()) &&
+        vehicleMatchesSearch(v, q) &&
         (status === "Svi statusi" || v.status === status) &&
-        (location === "Sve lokacije" || v.location.startsWith(location)),
+        (location === "Sve lokacije" ||
+          v.location.split("•", 1)[0].trim() === location) &&
+        (fuel === "Sva goriva" || v.fuel === fuel) &&
+        (transmission === "Svi menjači" ||
+          v.transmission === transmission) &&
+        (registration === "Sve registracije" ||
+          (registration === "Registrovano"
+            ? v.registered !== false
+            : v.registered === false)) &&
+        (yearRangeInvalid ||
+          ((!yearFrom || v.year >= Number(yearFrom)) &&
+            (!yearTo || v.year <= Number(yearTo)))) &&
+        (mileageRangeInvalid ||
+          ((!kmFrom || mileageForVehicle(v) >= Number(kmFrom)) &&
+            (!kmTo || mileageForVehicle(v) <= Number(kmTo)))) &&
+        (!serviceFilterApplied || serviceStateForVehicle(v) === serviceState) &&
+        (!availabilityFilterApplied ||
+          vehicleIsAvailableInPeriod(
+            v.id,
+            reservationWindows,
+            availableFrom,
+            availableTo,
+          )),
     )
     .sort((a, b) => (sortNew ? b.year - a.year : 0));
+  const availabilityNotice = availabilityPeriodInvalid
+    ? "Datum završetka mora biti posle datuma početka."
+    : Boolean(availableFrom) !== Boolean(availableTo)
+      ? "Izaberite početak i završetak perioda."
+      : availabilityPeriodComplete && availabilityLoading
+        ? "Proveravanje rezervacija…"
+        : availabilityPeriodComplete && availabilityError
+          ? availabilityError
+          : "";
+  const hasAdvancedFilters =
+    location !== "Sve lokacije" ||
+    fuel !== "Sva goriva" ||
+    transmission !== "Svi menjači" ||
+    registration !== "Sve registracije" ||
+    serviceState !== "Sva servisna stanja" ||
+    Boolean(yearFrom || yearTo || kmFrom || kmTo) ||
+    Boolean(availableFrom || availableTo) ||
+    sortNew;
+  const activeFilterSummary = [
+    status !== "Svi statusi" ? status : "",
+    location !== "Sve lokacije" ? location : "",
+    fuel !== "Sva goriva" ? fuel : "",
+    transmission !== "Svi menjači" ? transmission : "",
+    registration !== "Sve registracije" ? registration : "",
+    serviceFilterApplied ? serviceState : "",
+    !yearRangeInvalid && (yearFrom || yearTo)
+      ? `Godište ${yearFrom || "…"}–${yearTo || "…"}`
+      : "",
+    !mileageRangeInvalid && (kmFrom || kmTo)
+      ? `Kilometraža ${kmFrom || "0"}–${kmTo || "…"} km`
+      : "",
+    availabilityFilterApplied ? "Dostupno u izabranom periodu" : "",
+  ]
+    .filter(Boolean)
+    .join(" • ");
   const setKpi = (s: string) => {
     setStatus(s);
     setSortNew(false);
@@ -619,7 +793,7 @@ function Vehicles({
             <CustomInput
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Marka, model, tablice ili lokacija..."
+              placeholder="Marka, model, tablice, gorivo ili menjač..."
             />
           </div>
           <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -630,7 +804,7 @@ function Vehicles({
             <option>Na servisu</option>
           </CustomSelect>
           <Button
-            className={more ? "filter-active" : ""}
+            className={more || hasAdvancedFilters ? "filter-active" : ""}
             onClick={() => setMore((x) => !x)}
           >
             <FilterIcon className="button-icon" aria-hidden="true" />
@@ -638,7 +812,7 @@ function Vehicles({
           </Button>
         </div>
         {more && (
-          <div className="advanced-filters">
+          <div className="advanced-filters vehicle-filters">
             <label>
               Lokacija
               <CustomSelect
@@ -646,12 +820,100 @@ function Vehicles({
                 onChange={(e) => setLocation(e.target.value)}
               >
                 <option>Sve lokacije</option>
-                <option>Beograd</option>
-                <option>Novi Sad</option>
-                <option>Niš</option>
+                {locationOptions.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
               </CustomSelect>
             </label>
             <label>
+              Vrsta goriva
+              <CustomSelect
+                value={fuel}
+                onChange={(e) => setFuel(e.target.value)}
+              >
+                <option>Sva goriva</option>
+                {fuelOptions.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </CustomSelect>
+            </label>
+            <label>
+              Menjač
+              <CustomSelect
+                value={transmission}
+                onChange={(e) => setTransmission(e.target.value)}
+              >
+                <option>Svi menjači</option>
+                {transmissionOptions.map((option) => (
+                  <option key={option}>{option}</option>
+                ))}
+              </CustomSelect>
+            </label>
+            <label>
+              Status registracije
+              <CustomSelect
+                value={registration}
+                onChange={(e) => setRegistration(e.target.value)}
+              >
+                <option>Sve registracije</option>
+                <option>Registrovano</option>
+                <option>Nije registrovano</option>
+              </CustomSelect>
+            </label>
+            <label>
+              Servisno stanje
+              <CustomSelect
+                value={serviceState}
+                onChange={(e) => setServiceState(e.target.value)}
+              >
+                <option>Sva servisna stanja</option>
+                <option>Bez servisnog zapisa</option>
+                <option>Planirano</option>
+                <option>Uskoro</option>
+                <option>U toku</option>
+                <option>Završeno</option>
+                <option>Otkazano</option>
+              </CustomSelect>
+              {serviceState !== "Sva servisna stanja" &&
+                (serviceStatesLoading || serviceStatesError) && (
+                  <small className={serviceStatesError ? "error" : ""}>
+                    {serviceStatesError || "Učitavanje servisnih stanja…"}
+                  </small>
+                )}
+            </label>
+            <fieldset className="vehicle-availability-filter">
+              <legend>Dostupnost u periodu</legend>
+              <div className="vehicle-availability-dates">
+                <label>
+                  Od
+                  <CustomDatePicker
+                    type="datetime-local"
+                    value={availableFrom}
+                    onChange={(event) => setAvailableFrom(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Do
+                  <CustomDatePicker
+                    type="datetime-local"
+                    value={availableTo}
+                    onChange={(event) => setAvailableTo(event.target.value)}
+                  />
+                </label>
+              </div>
+              {availabilityNotice && (
+                <small
+                  className={
+                    availabilityPeriodInvalid || availabilityError
+                      ? "error"
+                      : ""
+                  }
+                >
+                  {availabilityNotice}
+                </small>
+              )}
+            </fieldset>
+            <label className="vehicle-sort-filter">
               <CustomInput
                 type="checkbox"
                 checked={sortNew}
@@ -659,21 +921,95 @@ function Vehicles({
               />{" "}
               Najnovija vozila prvo
             </label>
-            <Button
-              onClick={() => {
-                setQ("");
-                setStatus("Svi statusi");
-                setLocation("Sve lokacije");
-                setSortNew(false);
-              }}
-            >
-              Očisti filtere
-            </Button>
+            <fieldset className="vehicle-range-filter">
+              <legend>Godište</legend>
+              <div className="vehicle-range-inputs">
+                <label>
+                  Od
+                  <CustomInput
+                    type="number"
+                    min="1990"
+                    max="2027"
+                    placeholder="1990"
+                    value={yearFrom}
+                    onChange={(event) => setYearFrom(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Do
+                  <CustomInput
+                    type="number"
+                    min="1990"
+                    max="2027"
+                    placeholder="2027"
+                    value={yearTo}
+                    onChange={(event) => setYearTo(event.target.value)}
+                  />
+                </label>
+              </div>
+              {yearRangeInvalid && (
+                <small className="error">
+                  Početno godište ne može biti veće od završnog.
+                </small>
+              )}
+            </fieldset>
+            <fieldset className="vehicle-range-filter">
+              <legend>Kilometraža</legend>
+              <div className="vehicle-range-inputs">
+                <label>
+                  Od
+                  <CustomInput
+                    type="number"
+                    min="0"
+                    placeholder="0 km"
+                    value={kmFrom}
+                    onChange={(event) => setKmFrom(event.target.value)}
+                  />
+                </label>
+                <label>
+                  Do
+                  <CustomInput
+                    type="number"
+                    min="0"
+                    placeholder="npr. 100000 km"
+                    value={kmTo}
+                    onChange={(event) => setKmTo(event.target.value)}
+                  />
+                </label>
+              </div>
+              {mileageRangeInvalid && (
+                <small className="error">
+                  Početna kilometraža ne može biti veća od završne.
+                </small>
+              )}
+            </fieldset>
+            <div className="vehicle-filter-actions">
+              <Button
+                onClick={() => {
+                  setQ("");
+                  setStatus("Svi statusi");
+                  setLocation("Sve lokacije");
+                  setFuel("Sva goriva");
+                  setTransmission("Svi menjači");
+                  setRegistration("Sve registracije");
+                  setServiceState("Sva servisna stanja");
+                  setYearFrom("");
+                  setYearTo("");
+                  setKmFrom("");
+                  setKmTo("");
+                  setAvailableFrom("");
+                  setAvailableTo("");
+                  setSortNew(false);
+                }}
+              >
+                Očisti filtere
+              </Button>
+            </div>
           </div>
         )}
         <div className="active-filter-note">
           Prikazano {shown.length} od {all.length} vozila
-          {status !== "Svi statusi" ? ` • ${status}` : ""}
+          {activeFilterSummary ? ` • ${activeFilterSummary}` : ""}
         </div>
         <div className="table-scroll">
           <table>

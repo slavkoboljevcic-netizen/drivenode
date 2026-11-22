@@ -78,6 +78,8 @@ test("shared helpers preserve input and display boundaries", async () => {
     reservationBlocksVehicle,
     reservationPeriodsOverlap,
     statusTone,
+    vehicleIsAvailableInPeriod,
+    vehicleMatchesSearch,
   } =
     await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
 
@@ -116,6 +118,84 @@ test("shared helpers preserve input and display boundaries", async () => {
     ["Na servisu", "red"], ["Uskoro", "red"], ["Potvrđena", "violet"],
     ["Rezervisano", "violet"], ["Otkazana", "amber"], [undefined, "amber"],
   ]) assert.equal(statusTone(status), expected);
+
+  const vehicle = {
+    name: "Škoda Kamiq",
+    plate: "BG-2782-JK",
+    year: 2026,
+    location: "Beograd • Aerodrom",
+    status: "Dostupno",
+    vin: "TMB123ABC456",
+    fuel: "Dizel",
+    transmission: "Automatski",
+    registered: true,
+  };
+  for (const query of [
+    "skoda",
+    "BG 2782 JK",
+    "dizel automatik",
+    "2026 Beograd",
+    "TMB123",
+    "registrovano",
+    "slobodno",
+  ]) assert.equal(vehicleMatchesSearch(vehicle, query), true, query);
+  assert.equal(vehicleMatchesSearch(vehicle, "benzin"), false);
+  assert.equal(vehicleMatchesSearch(vehicle, "dizel Novi Sad"), false);
+  assert.equal(
+    vehicleMatchesSearch(
+      {
+        ...vehicle,
+        plate: "DNFM-NEREG-22",
+        fuel: "Benzin",
+        transmission: "Manuelni",
+        registered: false,
+      },
+      "manuelac benzin bez tablica",
+    ),
+    true,
+  );
+
+  const reservationWindows = [
+    {
+      vehicleId: 7,
+      startsAt: "2026-11-10T10:00",
+      endsAt: "2026-11-15T10:00",
+      status: "Potvrđena",
+    },
+    {
+      vehicleId: 8,
+      startsAt: "2026-11-20T10:00",
+      endsAt: "2026-11-22T10:00",
+      status: "Aktivna",
+    },
+  ];
+  assert.equal(
+    vehicleIsAvailableInPeriod(
+      7,
+      reservationWindows,
+      "2026-11-12T10:00",
+      "2026-11-16T10:00",
+    ),
+    false,
+  );
+  assert.equal(
+    vehicleIsAvailableInPeriod(
+      7,
+      reservationWindows,
+      "2026-11-15T10:00",
+      "2026-11-18T10:00",
+    ),
+    true,
+  );
+  assert.equal(
+    vehicleIsAvailableInPeriod(
+      9,
+      reservationWindows,
+      "2026-11-12T10:00",
+      "2026-11-16T10:00",
+    ),
+    true,
+  );
 });
 
 test("keeps app structure, local Montserrat font and npm package setup", async () => {
