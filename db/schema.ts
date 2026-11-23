@@ -44,6 +44,7 @@ export const reservations = sqliteTable(
     location: text("location").notNull(),
     price: integer("price").notNull().default(0),
     status: text("status").notNull().default("Potvrđena"),
+    completedAt: text("completed_at"),
     createdAt: text("created_at")
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),

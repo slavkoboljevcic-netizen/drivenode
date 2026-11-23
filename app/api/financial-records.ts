@@ -1,4 +1,4 @@
-import {
+import type {
   deletedRecords,
   reservations,
   serviceRecords,
@@ -16,6 +16,30 @@ const cityFromLocation = (location: string) =>
   location.split(" • ")[0]?.trim() || "Nije određena";
 
 const dateFromValue = (value: string) => value.slice(0, 10);
+
+export const businessDateKey = (value: string | Date) => {
+  const raw = value instanceof Date ? value.toISOString() : value;
+  if (!/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)) return dateFromValue(raw);
+  const date = new Date(raw);
+  if (!Number.isFinite(date.getTime())) return dateFromValue(raw);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Belgrade",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((item) => item.type === type)?.value || "";
+  return `${part("year")}-${part("month")}-${part("day")}`;
+};
+
+export const reservationRevenueDate = (reservation: {
+  completedAt?: string | null;
+  endsAt: string;
+}) =>
+  reservation.completedAt
+    ? businessDateKey(reservation.completedAt)
+    : dateFromValue(reservation.endsAt);
 
 const normalized = (value: string) => value.trim().toLocaleLowerCase("sr-Latn");
 
@@ -79,7 +103,7 @@ export function buildFinancialRecords({
     transaction.amount === reservation.price &&
     normalized(cityFromLocation(transaction.location)) ===
       normalized(cityFromLocation(reservation.location)) &&
-    daysBetween(transaction.date, reservation.endsAt) <= 7;
+    daysBetween(transaction.date, reservationRevenueDate(reservation)) <= 7;
   const reservationByManualReference = new Map<string, ReservationRow>();
   for (const transaction of rentalIncomeRecords) {
     const searchable = normalized(
@@ -174,12 +198,12 @@ export function buildFinancialRecords({
         category: "Najam vozila",
         kind: "Prihod",
         amount: reservation.price,
-        date: dateFromValue(reservation.endsAt),
+        date: reservationRevenueDate(reservation),
         location: cityFromLocation(reservation.location),
         status: "Plaćeno",
         paymentMethod: "Automatski",
         notes: `Automatski prihod povezan sa završenom rezervacijom ${reservation.code}.`,
-        createdAt: reservation.endsAt,
+        createdAt: reservation.completedAt || reservation.endsAt,
       };
     });
 

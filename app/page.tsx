@@ -4075,8 +4075,10 @@ function ServicePanel({
 const demoFinance: F[] = [];
 function Finance({
   onSectionChange,
+  refresh,
 }: {
   onSectionChange: (view: BusinessSectionView) => void;
+  refresh: number;
 }) {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("transactions");
@@ -4088,13 +4090,13 @@ function Finance({
   const [selected, setSelected] = useState<F | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const load = () =>
-    fetch("/api/transactions")
+    fetch("/api/transactions", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => setAdded(d.transactions || []))
       .catch(() => {});
   useEffect(() => {
     load();
-  }, []);
+  }, [refresh]);
   const all = [...added, ...demoFinance]
     .filter((x) => !deleted.has(x.reference))
     .filter((x, i, a) => a.findIndex((y) => y.reference === x.reference) === i);
@@ -5125,8 +5127,10 @@ function DocumentPanel({
 }
 function Reports({
   onSectionChange,
+  refresh,
 }: {
   onSectionChange: (view: BusinessSectionView) => void;
+  refresh: number;
 }) {
   const [period, setPeriod] = useState("current-month");
   const [location, setLocation] = useState("Sve poslovnice");
@@ -5146,10 +5150,10 @@ function Reports({
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/vehicles"),
-      fetch("/api/reservations"),
-      fetch("/api/transactions"),
-      fetch("/api/deletions?entity=vehicles"),
+      fetch("/api/vehicles", { cache: "no-store" }),
+      fetch("/api/reservations", { cache: "no-store" }),
+      fetch("/api/transactions", { cache: "no-store" }),
+      fetch("/api/deletions?entity=vehicles", { cache: "no-store" }),
     ])
       .then(async (responses) => {
         if (responses.some((response) => !response.ok))
@@ -5175,7 +5179,7 @@ function Reports({
         setReportTransactions([]);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [refresh]);
 
   const now = new Date();
   const monthLabel = (date: Date) => {
@@ -6549,10 +6553,12 @@ function App() {
         ) : businessSection === "reports" ? (
           <Reports
             onSectionChange={(view) => go(pageForBusinessSection(view))}
+            refresh={bookingRefresh}
           />
         ) : (
           <Finance
             onSectionChange={(view) => go(pageForBusinessSection(view))}
+            refresh={bookingRefresh}
           />
         )
       ) : page.startsWith("Korisnici") ? (
@@ -6567,6 +6573,7 @@ function App() {
           addVehicle={addVehicle}
           newClient={addClient}
           userName={currentUser.name}
+          refresh={bookingRefresh}
         />
       );
   return (

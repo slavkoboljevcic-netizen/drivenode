@@ -51,6 +51,7 @@ const databaseSchema = [
     location TEXT NOT NULL,
     price INTEGER DEFAULT 0 NOT NULL,
     status TEXT DEFAULT 'Potvrđena' NOT NULL,
+    completed_at TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_code ON reservations (code)`,
@@ -167,6 +168,7 @@ const missingColumns = [
   ["vehicles", "registration_expires_at", "TEXT"],
   ["reservations", "vehicle_id", "INTEGER"],
   ["reservations", "client_id", "INTEGER"],
+  ["reservations", "completed_at", "TEXT"],
   ["service_records", "vehicle_id", "INTEGER"],
   ["service_records", "ends_at", "TEXT DEFAULT '' NOT NULL"],
   ["transactions", "vehicle_id", "INTEGER"],
@@ -407,6 +409,12 @@ function ensureDatabase(env: Env) {
              WHERE deleted_records.entity = 'vehicles'
                AND deleted_records.record_key = vehicles.plate
            )`,
+      ).run();
+      await env.DB.prepare(
+        `UPDATE reservations
+         SET completed_at = ends_at
+         WHERE status = 'Završena'
+           AND completed_at IS NULL`,
       ).run();
       await env.DB.prepare(
         `UPDATE vehicles

@@ -2,9 +2,9 @@ import { desc } from "drizzle-orm";
 import { calculateVehicleStatuses } from "../../lib";
 import { getDb } from "../../../db";
 import { clients, deletedRecords, reservations, serviceRecords, transactions, vehicles } from "../../../db/schema";
-import { buildFinancialRecords } from "../financial-records";
+import { buildFinancialRecords, businessDateKey } from "../financial-records";
 
-const dayKey = (value: string | Date) => new Date(value).toISOString().slice(0, 10);
+const dayKey = (value: string | Date) => businessDateKey(value);
 const money = (value: number) => `${value.toLocaleString("sr-RS")} RSD`;
 
 export async function GET() {

@@ -113,6 +113,7 @@ export default function DashboardLive({
   addVehicle,
   newClient,
   userName,
+  refresh,
 }: {
   go: (page: string) => void;
   openBooking: (booking: Booking) => void;
@@ -120,17 +121,19 @@ export default function DashboardLive({
   addVehicle: () => void;
   newClient: () => void;
   userName: string;
+  refresh: number;
 }) {
   const [period, setPeriod] = useState(30);
   const [data, setData] = useState<Overview>(empty);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    fetch("/api/overview")
+    setLoading(true);
+    fetch("/api/overview", { cache: "no-store" })
       .then((response) => (response.ok ? response.json() : Promise.reject()))
       .then(setData)
       .catch(() => setData(empty))
       .finally(() => setLoading(false));
-  }, []);
+  }, [refresh]);
 
   const revenue = data.revenueByDay.slice(-period);
   const revenueTotal = revenue.reduce((sum, item) => sum + item.value, 0);

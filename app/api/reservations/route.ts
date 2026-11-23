@@ -57,6 +57,16 @@ const archivedVehicleResponse = () =>
 const isArchivedVehicleConflict = (error: unknown) =>
   error instanceof Error && error.message.includes("ARCHIVED_VEHICLE");
 
+const completedAtForStatus = (
+  current: typeof reservations.$inferSelect,
+  status: string,
+) => {
+  if (status !== "Završena") return null;
+  if (current.status === "Završena")
+    return current.completedAt || current.endsAt;
+  return new Date().toISOString();
+};
+
 const unavailableVehicleResponse = (
   vehicle: string,
   reasons: readonly { code: string; message: string }[],
@@ -229,7 +239,19 @@ export async function POST(request: Request) {
         return unavailableVehicleResponse(vehicle, result.reasons);
     }
     const code = `DN-${Date.now().toString().slice(-6)}`;
-    const [reservation] = await db.insert(reservations).values({ code, clientId, vehicleId, client, vehicle, startsAt, endsAt, location, status, price: Math.round(price) }).returning();
+    const [reservation] = await db.insert(reservations).values({
+      code,
+      clientId,
+      vehicleId,
+      client,
+      vehicle,
+      startsAt,
+      endsAt,
+      location,
+      status,
+      price: Math.round(price),
+      completedAt: status === "Završena" ? new Date().toISOString() : null,
+    }).returning();
     return Response.json({ reservation }, { status: 201 });
   } catch (error) {
     if (isDatabaseConflict(error)) return conflictResponse(requestedVehicle);
@@ -328,6 +350,7 @@ export async function PATCH(request: Request) {
       if (result && !result.available)
         return unavailableVehicleResponse(proposed.vehicle, result.reasons);
     }
+    const completedAt = completedAtForStatus(current, status);
     const values = hasDetails
       ? {
           client: proposed.client,
@@ -339,8 +362,9 @@ export async function PATCH(request: Request) {
           location: proposed.location,
           price: proposed.price,
           status,
+          completedAt,
         }
-      : { status };
+      : { status, completedAt };
     const [reservation] = await db
       .update(reservations)
       .set(values)

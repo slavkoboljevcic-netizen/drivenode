@@ -278,6 +278,71 @@ test("shared helpers preserve input and display boundaries", async () => {
   );
 });
 
+test("completed reservations create revenue on the actual completion day", async () => {
+  const source = await readFile(
+    new URL("../app/api/financial-records.ts", import.meta.url),
+    "utf8",
+  );
+  const { outputText } = ts.transpileModule(source, {
+    compilerOptions: { module: ts.ModuleKind.ESNext },
+  });
+  const { buildFinancialRecords, businessDateKey, reservationRevenueDate } =
+    await import(
+      `data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`
+    );
+
+  const completedAt = "2026-11-22T23:30:00.000Z";
+  const reservation = {
+    id: 17,
+    code: "DN-TEST-17",
+    vehicleId: 7,
+    clientId: 3,
+    client: "Test Klijent",
+    vehicle: "Test Vozilo",
+    startsAt: "2026-10-01T10:00",
+    endsAt: "2026-10-05T10:00",
+    location: "Beograd • Centar",
+    price: 42000,
+    status: "Završena",
+    completedAt,
+    createdAt: "2026-09-20T10:00:00.000Z",
+  };
+  const records = buildFinancialRecords({
+    deleted: [],
+    manual: [],
+    reservationRows: [reservation],
+    services: [],
+    vehicleRows: [
+      {
+        id: 7,
+        name: "Test Vozilo",
+        plate: "BG-TEST-17",
+        location: "Beograd • Centar",
+      },
+    ],
+  });
+
+  assert.equal(businessDateKey(new Date(completedAt)), "2026-11-23");
+  assert.equal(reservationRevenueDate(reservation), "2026-11-23");
+  assert.equal(records.length, 1);
+  assert.deepEqual(
+    {
+      reference: records[0].reference,
+      kind: records[0].kind,
+      amount: records[0].amount,
+      date: records[0].date,
+      status: records[0].status,
+    },
+    {
+      reference: "AUTO-RES-DN-TEST-17",
+      kind: "Prihod",
+      amount: 42000,
+      date: "2026-11-23",
+      status: "Plaćeno",
+    },
+  );
+});
+
 test("keeps app structure, local Montserrat font and npm package setup", async () => {
   const [layout, page, globals, packageJson, components, styles] =
     await Promise.all([
