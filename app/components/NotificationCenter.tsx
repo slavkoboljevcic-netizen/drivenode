@@ -97,7 +97,9 @@ export default function NotificationCenter({
       localStorage.removeItem(READ_KEY);
     }
     void load();
-    const timer = window.setInterval(() => void load(), 60000);
+    const timer = window.setInterval(() => {
+      if (!document.hidden) void load();
+    }, 60000);
     const refresh = () => void load();
     window.addEventListener("focus", refresh);
     return () => {

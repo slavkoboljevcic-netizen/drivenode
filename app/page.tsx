@@ -211,8 +211,6 @@ const pageFromPath = (path: string) =>
                 : path.startsWith("/settings")
                   ? "Podešavanja"
                   : "Pregled";
-const vehicles: V[] = [];
-const bookings: B[] = [];
 type VehicleSectionView = "fleet" | "services";
 const vehicleSectionFromPath = (path: string): VehicleSectionView =>
   path.startsWith("/services") || path.startsWith("/vehicles/services")
@@ -626,7 +624,7 @@ function Vehicles({
       onAddHandled();
     }
   }, [addTrigger, onAddHandled]);
-  const all = [...added, ...vehicles].filter(
+  const all = added.filter(
     (v, i, a) => a.findIndex((x) => x.id === v.id) === i,
   );
   const activeVehicles = all.filter((vehicle) => !vehicle.archivedAt);
@@ -1573,14 +1571,6 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           </section>
           <section className="panel timeline">
             <h2>Poslednje aktivnosti</h2>
-            {([] as string[][]).map((x) => (
-              <div key={x[0]}>
-                <i />
-                <small>{x[0]}</small>
-                <strong>{x[1]}</strong>
-                <p>{x[2]}</p>
-              </div>
-            ))}
           </section>
         </div>
       ) : (
@@ -1994,7 +1984,7 @@ function Reservations({
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [refresh]);
-  const all = [...added, ...bookings]
+  const all = added
     .filter((b, i, a) => a.findIndex((x) => x.id === b.id) === i)
     .map((b) => ({ ...b, status: overrides[b.id] || b.status }));
   const vehicleKey = (booking: B) =>
@@ -2402,7 +2392,7 @@ function NewReservationModal({
   close: () => void;
   saved: () => void;
 }) {
-  const [vehicleOptions, setVehicleOptions] = useState<V[]>(vehicles);
+  const [vehicleOptions, setVehicleOptions] = useState<V[]>([]);
   const [clientOptions, setClientOptions] = useState<ReservationClient[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
   const [availableVehicleIds, setAvailableVehicleIds] = useState<Set<number> | null>(null);
@@ -2858,7 +2848,6 @@ function BookingPanel({
     </DrawerFrame>
   );
 }
-const demoClients: C[] = [];
 function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("clients");
@@ -2884,7 +2873,7 @@ function Clients({ addTrigger = 0 }: { addTrigger?: number }) {
   useEffect(() => {
     if (addTrigger > 0) setShowAdd(true);
   }, [addTrigger]);
-  const all = [...added, ...demoClients]
+  const all = added
     .filter((c) => !deleted.has(c.email))
     .filter((c, i, a) => a.findIndex((x) => x.email === c.email) === i);
   const shown = all
@@ -3433,24 +3422,7 @@ function ClientPanel({
           ))}
         {tab === "Rezervacije" && (
           <div className="client-records">
-            {bookings
-              .filter((b) => b.client === form.name)
-              .map((b) => (
-                <Button key={b.id}>
-                  <div>
-                    <b>
-                      {b.id} • {b.vehicle}
-                    </b>
-                    <small>
-                      {b.from} — {b.to}
-                    </small>
-                  </div>
-                  <StatusBadge status={b.status} />
-                </Button>
-              ))}
-            {!bookings.some((b) => b.client === form.name) && (
-              <EmptyState>Klijent još nema rezervacija.</EmptyState>
-            )}
+            <EmptyState>Klijent još nema rezervacija.</EmptyState>
           </div>
         )}
         {tab === "Dokumenta" && (
@@ -3484,7 +3456,6 @@ function ClientPanel({
     </DrawerFrame>
   );
 }
-const demoServices: S[] = [];
 function Services({
   onSectionChange,
 }: {
@@ -3511,7 +3482,7 @@ function Services({
   useEffect(() => {
     load();
   }, []);
-  const all = [...added, ...demoServices]
+  const all = added
     .filter((s) => !deleted.has(s.code))
     .filter((s, i, a) => a.findIndex((x) => x.code === s.code) === i);
   const shown = all
@@ -4072,7 +4043,6 @@ function ServicePanel({
     </DrawerFrame>
   );
 }
-const demoFinance: F[] = [];
 function Finance({
   onSectionChange,
   refresh,
@@ -4097,7 +4067,7 @@ function Finance({
   useEffect(() => {
     load();
   }, [refresh]);
-  const all = [...added, ...demoFinance]
+  const all = added
     .filter((x) => !deleted.has(x.reference))
     .filter((x, i, a) => a.findIndex((y) => y.reference === x.reference) === i);
   const shown = all.filter(
@@ -4713,7 +4683,6 @@ function TransactionPanel({
     </DrawerFrame>
   );
 }
-const demoDocs: D[] = [];
 function Documents({
   onSectionChange,
 }: {
@@ -4733,7 +4702,7 @@ function Documents({
   useEffect(() => {
     load();
   }, []);
-  const all = [...added, ...demoDocs].filter((d) => !deleted.has(d.storageKey));
+  const all = added.filter((d) => !deleted.has(d.storageKey));
   const shown = all.filter(
     (d) =>
       (d.name + d.linkedTo + d.uploadedBy)
@@ -5263,22 +5232,38 @@ function Reports({
         Math.max(new Date(reservation.startsAt).getTime(), selectedPeriod.start.getTime())) /
         86400000,
     );
+  const reservationMetricsByVehicle = new Map<
+    number,
+    { count: number; occupiedDays: number }
+  >();
+  for (const reservation of visibleReservations) {
+    if (!reservation.vehicleId) continue;
+    const current = reservationMetricsByVehicle.get(reservation.vehicleId) || {
+      count: 0,
+      occupiedDays: 0,
+    };
+    current.count += 1;
+    current.occupiedDays += reservationDays(reservation);
+    reservationMetricsByVehicle.set(reservation.vehicleId, current);
+  }
+  const revenueByVehicle = new Map<number, number>();
+  for (const transaction of incomeTransactions) {
+    if (!transaction.vehicleId) continue;
+    revenueByVehicle.set(
+      transaction.vehicleId,
+      (revenueByVehicle.get(transaction.vehicleId) || 0) + transaction.amount,
+    );
+  }
   const vehicleMetrics = visibleVehicles.map((vehicle) => {
-    const reservationsForVehicle = visibleReservations.filter(
-      (reservation) => reservation.vehicleId === vehicle.id,
-    );
-    const occupiedDays = reservationsForVehicle.reduce(
-      (sum, reservation) => sum + reservationDays(reservation),
-      0,
-    );
-    const revenue = incomeTransactions
-      .filter((transaction) => transaction.vehicleId === vehicle.id)
-      .reduce((sum, transaction) => sum + transaction.amount, 0);
+    const reservationMetrics = reservationMetricsByVehicle.get(vehicle.id);
     return {
       vehicle,
-      reservations: reservationsForVehicle.length,
-      revenue,
-      utilization: Math.min(100, Math.round((occupiedDays / rangeDays) * 100)),
+      reservations: reservationMetrics?.count || 0,
+      revenue: revenueByVehicle.get(vehicle.id) || 0,
+      utilization: Math.min(
+        100,
+        Math.round(((reservationMetrics?.occupiedDays || 0) / rangeDays) * 100),
+      ),
     };
   });
   const occupiedFleetDays = visibleReservations.reduce(
@@ -5691,7 +5676,6 @@ function ReportPanel({
     </DrawerFrame>
   );
 }
-const demoUsers: U[] = [];
 function Users() {
   const [q, setQ] = useState("");
   const { deleted, remove } = useSoftDelete("users");
@@ -5708,7 +5692,7 @@ function Users() {
   useEffect(() => {
     load();
   }, []);
-  const all = [...added, ...demoUsers]
+  const all = added
     .filter((u) => !deleted.has(u.email))
     .filter((u, i, a) => a.findIndex((x) => x.email === u.email) === i)
     .map((u) => ({ ...u, permissions: safePermissions(u.permissions) }));

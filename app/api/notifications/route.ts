@@ -1,4 +1,5 @@
 import { getDb } from "../../../db";
+import { eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import {
   deletedRecords,
   documents,
@@ -8,6 +9,7 @@ import {
   vehicleDamages,
   vehicles,
 } from "../../../db/schema";
+import { businessDateKey } from "../financial-records";
 
 type Severity = "critical" | "warning" | "info";
 type NotificationItem = {
@@ -26,16 +28,6 @@ const dayNumber = (value: string) => {
   const [year, month, day] = value.split("-").map(Number);
   if (!year || !month || !day) return Number.NaN;
   return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
-};
-const localToday = () => {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Europe/Belgrade",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  return `${values.year}-${values.month}-${values.day}`;
 };
 const displayDate = (value: string) =>
   new Date(`${dateKey(value)}T12:00:00Z`).toLocaleDateString("sr-Latn-RS", {
@@ -59,11 +51,23 @@ export async function GET() {
       vehicleRows,
       deletionRows,
     ] = await Promise.all([
-      db.select().from(serviceRecords),
-      db.select().from(reservations),
-      db.select().from(documents),
-      db.select().from(transactions),
-      db.select().from(vehicleDamages),
+      db
+        .select()
+        .from(serviceRecords)
+        .where(notInArray(serviceRecords.status, ["Završeno", "Otkazano"])),
+      db
+        .select()
+        .from(reservations)
+        .where(notInArray(reservations.status, ["Završena", "Otkazana"])),
+      db.select().from(documents).where(isNotNull(documents.expiresAt)),
+      db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.status, "Na čekanju")),
+      db
+        .select()
+        .from(vehicleDamages)
+        .where(inArray(vehicleDamages.status, ["Prijavljena", "U obradi"])),
       db.select().from(vehicles),
       db.select().from(deletedRecords),
     ]);
@@ -75,15 +79,12 @@ export async function GET() {
     }
     const vehiclesById = new Map(vehicleRows.map((vehicle) => [vehicle.id, vehicle]));
 
-    const today = localToday();
+    const today = businessDateKey(new Date());
     const todayDay = dayNumber(today);
     const notifications: NotificationItem[] = [];
 
     for (const service of serviceRows) {
-      if (
-        deleted.get("services")?.has(service.code) ||
-        ["Završeno", "Otkazano"].includes(service.status)
-      ) continue;
+      if (deleted.get("services")?.has(service.code)) continue;
       const due = dateKey(service.dueDate);
       const days = dayNumber(due) - todayDay;
       if (!Number.isFinite(days) || days > 30) continue;
@@ -110,10 +111,7 @@ export async function GET() {
     }
 
     for (const reservation of reservationRows) {
-      if (
-        deleted.get("reservations")?.has(reservation.code) ||
-        ["Završena", "Otkazana"].includes(reservation.status)
-      ) continue;
+      if (deleted.get("reservations")?.has(reservation.code)) continue;
       const start = dateKey(reservation.startsAt);
       const end = dateKey(reservation.endsAt);
       const linkedVehicle = reservation.vehicleId
@@ -179,10 +177,7 @@ export async function GET() {
     }
 
     for (const transaction of transactionRows) {
-      if (
-        deleted.get("transactions")?.has(transaction.reference) ||
-        transaction.status !== "Na čekanju"
-      ) continue;
+      if (deleted.get("transactions")?.has(transaction.reference)) continue;
       notifications.push({
         id: `finance:${transaction.reference}`,
         kind: "finance",
@@ -196,7 +191,6 @@ export async function GET() {
     }
 
     for (const damage of damageRows) {
-      if (!["Prijavljena", "U obradi"].includes(damage.status)) continue;
       const linkedVehicle = damage.vehicleId
         ? vehiclesById.get(damage.vehicleId)
         : undefined;

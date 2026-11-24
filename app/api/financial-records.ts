@@ -80,6 +80,14 @@ export function buildFinancialRecords({
   const legacyLocations = new Map(
     vehicleRows.map((vehicle) => [vehicle.plate, cityFromLocation(vehicle.location)]),
   );
+  const uniqueVehicleByName = new Map<string, number | null>();
+  for (const vehicle of vehicleRows) {
+    const name = normalized(vehicle.name);
+    uniqueVehicleByName.set(
+      name,
+      uniqueVehicleByName.has(name) ? null : vehicle.id,
+    );
+  }
 
   const visibleManualRecords = manual.filter(
     (transaction) => !hiddenTransactions.has(transaction.reference),
@@ -135,10 +143,7 @@ export function buildFinancialRecords({
   );
   const resolveReservationVehicleId = (reservation: ReservationRow) => {
     if (reservation.vehicleId) return reservation.vehicleId;
-    const matchingVehicles = vehicleRows.filter(
-      (vehicle) => normalized(vehicle.name) === normalized(reservation.vehicle),
-    );
-    return matchingVehicles.length === 1 ? matchingVehicles[0].id : null;
+    return uniqueVehicleByName.get(normalized(reservation.vehicle)) || null;
   };
   const manualRecords = visibleManualRecords.map((transaction) => {
     const reservation = reservationByManualReference.get(transaction.reference);

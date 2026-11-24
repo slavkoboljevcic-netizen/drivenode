@@ -341,6 +341,31 @@ test("completed reservations create revenue on the actual completion day", async
       status: "Plaćeno",
     },
   );
+
+  const legacyRecords = buildFinancialRecords({
+    deleted: [],
+    manual: [],
+    reservationRows: [
+      { ...reservation, id: 18, code: "DN-UNIQUE", vehicleId: null, vehicle: "Jedinstveno" },
+      { ...reservation, id: 19, code: "DN-DUPLICATE", vehicleId: null, vehicle: "Duplikat" },
+    ],
+    services: [],
+    vehicleRows: [
+      { id: 8, name: "Jedinstveno", plate: "BG-U-1", location: "Beograd" },
+      { id: 9, name: "Duplikat", plate: "BG-D-1", location: "Beograd" },
+      { id: 10, name: "Duplikat", plate: "BG-D-2", location: "Beograd" },
+    ],
+  });
+  assert.equal(
+    legacyRecords.find((record) => record.reference === "AUTO-RES-DN-UNIQUE")
+      ?.vehicleId,
+    8,
+  );
+  assert.equal(
+    legacyRecords.find((record) => record.reference === "AUTO-RES-DN-DUPLICATE")
+      ?.vehicleId,
+    null,
+  );
 });
 
 test("keeps app structure, local Montserrat font and npm package setup", async () => {
