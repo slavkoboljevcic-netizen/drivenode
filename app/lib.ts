@@ -114,72 +114,69 @@ export type CalculatedVehicleStatus =
 
 type StatusVehicle = {
   id: number;
-  name: string;
-  plate: string;
+  registered?: boolean;
+  registrationExpiresAt?: string | null;
   outOfService?: boolean;
   archivedAt?: string | null;
 };
 
 type StatusReservation = {
   vehicleId: number | null;
-  vehicle: string;
   status: string;
 };
 
 type StatusService = {
   vehicleId: number | null;
-  plate: string;
   status: string;
 };
 
-const normalizedRelationKey = (value: string) =>
-  value.trim().toLocaleLowerCase("sr-Latn-RS");
+const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
+const registrationValidUntil = (value: string) => {
+  const parsed = new Date(
+    dateOnly.test(value) ? `${value}T23:59:59.999` : value,
+  ).getTime();
+  return Number.isFinite(parsed) ? parsed : null;
+};
+const registrationBlocksCurrentUse = (
+  vehicle: StatusVehicle,
+  now: Date,
+) => {
+  if (vehicle.registered === false) return true;
+  if (vehicle.registered !== true) return false;
+  if (!vehicle.registrationExpiresAt) return true;
+  const validUntil = registrationValidUntil(vehicle.registrationExpiresAt);
+  return validUntil === null || now.getTime() > validUntil;
+};
 
 export const calculateVehicleStatuses = (
   vehicles: readonly StatusVehicle[],
   reservations: readonly StatusReservation[],
   services: readonly StatusService[],
+  now = new Date(),
 ) => {
   const statusById = new Map<number, CalculatedVehicleStatus>();
-  const uniqueVehicleByName = new Map<string, number | null>();
-  const vehicleByPlate = new Map<string, number>();
 
   for (const vehicle of vehicles) {
-    const name = normalizedRelationKey(vehicle.name);
-    uniqueVehicleByName.set(
-      name,
-      uniqueVehicleByName.has(name) ? null : vehicle.id,
-    );
-    vehicleByPlate.set(normalizedRelationKey(vehicle.plate), vehicle.id);
     statusById.set(
       vehicle.id,
       vehicle.archivedAt
         ? "Arhivirano"
-        : vehicle.outOfService
+        : vehicle.outOfService || registrationBlocksCurrentUse(vehicle, now)
           ? "Van upotrebe"
           : "Dostupno",
     );
   }
 
-  const resolveReservationVehicle = (reservation: StatusReservation) =>
-    reservation.vehicleId ||
-    uniqueVehicleByName.get(normalizedRelationKey(reservation.vehicle)) ||
-    null;
-  const resolveServiceVehicle = (service: StatusService) =>
-    service.vehicleId ||
-    vehicleByPlate.get(normalizedRelationKey(service.plate)) ||
-    null;
-
   for (const service of services) {
     if (service.status !== "U toku") continue;
-    const vehicleId = resolveServiceVehicle(service);
+    const vehicleId = service.vehicleId;
     if (vehicleId && statusById.get(vehicleId) === "Dostupno")
       statusById.set(vehicleId, "Na servisu");
   }
 
   for (const reservation of reservations) {
     if (!["Aktivna", "Povrat danas"].includes(reservation.status)) continue;
-    const vehicleId = resolveReservationVehicle(reservation);
+    const vehicleId = reservation.vehicleId;
     if (
       vehicleId &&
       !["Arhivirano", "Van upotrebe", "Na servisu"].includes(
@@ -190,7 +187,7 @@ export const calculateVehicleStatuses = (
 
   for (const reservation of reservations) {
     if (!reservationBlocksVehicle(reservation.status)) continue;
-    const vehicleId = resolveReservationVehicle(reservation);
+    const vehicleId = reservation.vehicleId;
     if (vehicleId && statusById.get(vehicleId) === "Dostupno")
       statusById.set(vehicleId, "Rezervisano");
   }
@@ -266,8 +263,6 @@ export type VehicleAvailabilityResult = {
 
 type AvailabilityVehicle = {
   id: number;
-  name: string;
-  plate: string;
   registered?: boolean;
   registrationExpiresAt?: string | null;
   outOfService?: boolean;
@@ -275,13 +270,11 @@ type AvailabilityVehicle = {
 };
 
 type AvailabilityReservation = VehicleReservationWindow & {
-  vehicle: string;
   code?: string;
 };
 
 type AvailabilityService = {
   vehicleId: number | null;
-  plate: string;
   dueDate: string;
   endsAt?: string | null;
   status: string;
@@ -289,7 +282,6 @@ type AvailabilityService = {
 
 type AvailabilityDamage = {
   vehicleId: number | null;
-  plate: string;
   status: string;
 };
 
@@ -300,7 +292,6 @@ type AvailabilityBlock = {
   status: string;
 };
 
-const dateOnly = /^\d{4}-\d{2}-\d{2}$/;
 const startOfDate = (value: string) =>
   dateOnly.test(value) ? `${value}T00:00:00` : value;
 const endOfDate = (value: string) => {
@@ -309,13 +300,6 @@ const endOfDate = (value: string) => {
   date.setDate(date.getDate() + 1);
   return date.toISOString();
 };
-const registrationValidUntil = (value: string) => {
-  const parsed = new Date(
-    dateOnly.test(value) ? `${value}T23:59:59.999` : value,
-  ).getTime();
-  return Number.isFinite(parsed) ? parsed : null;
-};
-
 export const calculateFleetAvailability = (
   vehicles: readonly AvailabilityVehicle[],
   reservations: readonly AvailabilityReservation[],
@@ -331,8 +315,6 @@ export const calculateFleetAvailability = (
     number,
     Map<VehicleAvailabilityReasonCode, string>
   >();
-  const uniqueVehicleByName = new Map<string, number | null>();
-  const vehicleByPlate = new Map<string, number>();
   const requestedEnd = new Date(endsAt).getTime();
 
   const addReason = (
@@ -342,12 +324,6 @@ export const calculateFleetAvailability = (
   ) => reasonsByVehicle.get(vehicleId)?.set(code, message);
 
   for (const vehicle of vehicles) {
-    const name = normalizedRelationKey(vehicle.name);
-    uniqueVehicleByName.set(
-      name,
-      uniqueVehicleByName.has(name) ? null : vehicle.id,
-    );
-    vehicleByPlate.set(normalizedRelationKey(vehicle.plate), vehicle.id);
     reasonsByVehicle.set(vehicle.id, new Map());
     if (vehicle.archivedAt)
       addReason(vehicle.id, "ARCHIVED", "Vozilo je arhivirano.");
@@ -387,10 +363,7 @@ export const calculateFleetAvailability = (
         endsAt,
       )
     ) continue;
-    const vehicleId =
-      reservation.vehicleId ||
-      uniqueVehicleByName.get(normalizedRelationKey(reservation.vehicle)) ||
-      null;
+    const vehicleId = reservation.vehicleId;
     if (vehicleId)
       addReason(
         vehicleId,
@@ -401,10 +374,7 @@ export const calculateFleetAvailability = (
 
   for (const service of services) {
     if (!["Planirano", "Uskoro", "U toku"].includes(service.status)) continue;
-    const vehicleId =
-      service.vehicleId ||
-      vehicleByPlate.get(normalizedRelationKey(service.plate)) ||
-      null;
+    const vehicleId = service.vehicleId;
     if (!vehicleId) continue;
     const overlaps =
       service.status === "U toku" && !service.endsAt
@@ -425,10 +395,7 @@ export const calculateFleetAvailability = (
 
   for (const damage of damages) {
     if (!["Prijavljena", "U obradi"].includes(damage.status)) continue;
-    const vehicleId =
-      damage.vehicleId ||
-      vehicleByPlate.get(normalizedRelationKey(damage.plate)) ||
-      null;
+    const vehicleId = damage.vehicleId;
     if (vehicleId)
       addReason(
         vehicleId,

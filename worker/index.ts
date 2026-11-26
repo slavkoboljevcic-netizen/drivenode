@@ -213,32 +213,44 @@ const relationBackfill = [
      )`,
   `UPDATE service_records
    SET vehicle_id = (
-     SELECT vehicle.id FROM vehicles AS vehicle
+     SELECT MIN(vehicle.id) FROM vehicles AS vehicle
      WHERE lower(trim(vehicle.plate)) = lower(trim(service_records.plate))
-     LIMIT 1
    )
-   WHERE vehicle_id IS NULL`,
+   WHERE vehicle_id IS NULL
+     AND 1 = (
+       SELECT COUNT(*) FROM vehicles AS vehicle
+       WHERE lower(trim(vehicle.plate)) = lower(trim(service_records.plate))
+     )`,
   `UPDATE vehicle_damages
    SET vehicle_id = (
-     SELECT vehicle.id FROM vehicles AS vehicle
+     SELECT MIN(vehicle.id) FROM vehicles AS vehicle
      WHERE lower(trim(vehicle.plate)) = lower(trim(vehicle_damages.plate))
-     LIMIT 1
    )
-   WHERE vehicle_id IS NULL`,
+   WHERE vehicle_id IS NULL
+     AND 1 = (
+       SELECT COUNT(*) FROM vehicles AS vehicle
+       WHERE lower(trim(vehicle.plate)) = lower(trim(vehicle_damages.plate))
+     )`,
   `UPDATE documents
    SET vehicle_id = (
-     SELECT vehicle.id FROM vehicles AS vehicle
+     SELECT MIN(vehicle.id) FROM vehicles AS vehicle
      WHERE lower(trim(vehicle.plate)) = lower(trim(documents.linked_to))
-     LIMIT 1
    )
-   WHERE vehicle_id IS NULL`,
+   WHERE vehicle_id IS NULL
+     AND 1 = (
+       SELECT COUNT(*) FROM vehicles AS vehicle
+       WHERE lower(trim(vehicle.plate)) = lower(trim(documents.linked_to))
+     )`,
   `UPDATE transactions
    SET vehicle_id = (
-     SELECT vehicle.id FROM vehicles AS vehicle
+     SELECT MIN(vehicle.id) FROM vehicles AS vehicle
      WHERE lower(transactions.description) LIKE lower('[' || vehicle.plate || '] %')
-     LIMIT 1
    )
-   WHERE vehicle_id IS NULL`,
+   WHERE vehicle_id IS NULL
+     AND 1 = (
+       SELECT COUNT(*) FROM vehicles AS vehicle
+       WHERE lower(transactions.description) LIKE lower('[' || vehicle.plate || '] %')
+     )`,
 ] as const;
 
 const reservationProtectionSchema = [
@@ -248,19 +260,25 @@ const reservationProtectionSchema = [
   `DROP TRIGGER IF EXISTS prevent_archived_vehicle_reservation_update`,
   `DROP TRIGGER IF EXISTS prevent_vehicle_archive_with_active_reservations`,
   `DROP TRIGGER IF EXISTS prevent_vehicle_delete_with_linked_data`,
+  `DROP TRIGGER IF EXISTS require_reservation_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS require_reservation_vehicle_id_update`,
+  `DROP TRIGGER IF EXISTS require_service_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS require_service_vehicle_id_update`,
+  `DROP TRIGGER IF EXISTS require_damage_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS require_damage_vehicle_id_update`,
+  `DROP TRIGGER IF EXISTS validate_transaction_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS validate_transaction_vehicle_id_update`,
+  `DROP TRIGGER IF EXISTS validate_document_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS validate_document_vehicle_id_update`,
+  `DROP TRIGGER IF EXISTS validate_block_vehicle_id_insert`,
+  `DROP TRIGGER IF EXISTS validate_block_vehicle_id_update`,
   `CREATE TRIGGER IF NOT EXISTS prevent_reservation_overlap_insert
   BEFORE INSERT ON reservations
   WHEN NEW.status NOT IN ('Završena', 'Otkazana')
     AND EXISTS (
       SELECT 1
       FROM reservations AS existing
-      WHERE (
-          existing.vehicle_id = NEW.vehicle_id
-          OR (
-            existing.vehicle_id IS NULL
-            AND lower(trim(existing.vehicle)) = lower(trim(NEW.vehicle))
-          )
-        )
+      WHERE existing.vehicle_id = NEW.vehicle_id
         AND existing.status NOT IN ('Završena', 'Otkazana')
         AND julianday(existing.starts_at) < julianday(NEW.ends_at)
         AND julianday(existing.ends_at) > julianday(NEW.starts_at)
@@ -275,19 +293,13 @@ const reservationProtectionSchema = [
     SELECT RAISE(ABORT, 'RESERVATION_CONFLICT');
   END`,
   `CREATE TRIGGER IF NOT EXISTS prevent_reservation_overlap_update
-  BEFORE UPDATE OF vehicle_id, vehicle, starts_at, ends_at, status ON reservations
+  BEFORE UPDATE OF vehicle_id, starts_at, ends_at, status ON reservations
   WHEN NEW.status NOT IN ('Završena', 'Otkazana')
     AND EXISTS (
       SELECT 1
       FROM reservations AS existing
       WHERE existing.id <> OLD.id
-        AND (
-          existing.vehicle_id = NEW.vehicle_id
-          OR (
-            existing.vehicle_id IS NULL
-            AND lower(trim(existing.vehicle)) = lower(trim(NEW.vehicle))
-          )
-        )
+        AND existing.vehicle_id = NEW.vehicle_id
         AND existing.status NOT IN ('Završena', 'Otkazana')
         AND julianday(existing.starts_at) < julianday(NEW.ends_at)
         AND julianday(existing.ends_at) > julianday(NEW.starts_at)
@@ -347,27 +359,22 @@ const reservationProtectionSchema = [
   WHEN EXISTS (
       SELECT 1 FROM reservations
       WHERE reservations.vehicle_id = OLD.id
-        OR (reservations.vehicle_id IS NULL AND lower(trim(reservations.vehicle)) = lower(trim(OLD.name)))
     )
     OR EXISTS (
       SELECT 1 FROM transactions
       WHERE transactions.vehicle_id = OLD.id
-        OR (transactions.vehicle_id IS NULL AND instr(lower(transactions.description), lower(OLD.plate)) > 0)
     )
     OR EXISTS (
       SELECT 1 FROM documents
       WHERE documents.vehicle_id = OLD.id
-        OR (documents.vehicle_id IS NULL AND lower(trim(documents.linked_to)) = lower(trim(OLD.plate)))
     )
     OR EXISTS (
       SELECT 1 FROM service_records
       WHERE service_records.vehicle_id = OLD.id
-        OR (service_records.vehicle_id IS NULL AND lower(trim(service_records.plate)) = lower(trim(OLD.plate)))
     )
     OR EXISTS (
       SELECT 1 FROM vehicle_damages
       WHERE vehicle_damages.vehicle_id = OLD.id
-        OR (vehicle_damages.vehicle_id IS NULL AND lower(trim(vehicle_damages.plate)) = lower(trim(OLD.plate)))
     )
     OR EXISTS (
       SELECT 1 FROM vehicle_availability_blocks
@@ -375,6 +382,90 @@ const reservationProtectionSchema = [
     )
   BEGIN
     SELECT RAISE(ABORT, 'VEHICLE_HAS_LINKED_DATA');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_reservation_vehicle_id_insert
+  BEFORE INSERT ON reservations
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_reservation_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON reservations
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_service_vehicle_id_insert
+  BEFORE INSERT ON service_records
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_service_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON service_records
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_damage_vehicle_id_insert
+  BEFORE INSERT ON vehicle_damages
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS require_damage_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON vehicle_damages
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_transaction_vehicle_id_insert
+  BEFORE INSERT ON transactions
+  WHEN NEW.vehicle_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'INVALID_VEHICLE_ID');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_transaction_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON transactions
+  WHEN NEW.vehicle_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'INVALID_VEHICLE_ID');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_document_vehicle_id_insert
+  BEFORE INSERT ON documents
+  WHEN NEW.vehicle_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'INVALID_VEHICLE_ID');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_document_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON documents
+  WHEN NEW.vehicle_id IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'INVALID_VEHICLE_ID');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_block_vehicle_id_insert
+  BEFORE INSERT ON vehicle_availability_blocks
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
+  END`,
+  `CREATE TRIGGER IF NOT EXISTS validate_block_vehicle_id_update
+  BEFORE UPDATE OF vehicle_id ON vehicle_availability_blocks
+  WHEN NEW.vehicle_id IS NULL
+    OR NOT EXISTS (SELECT 1 FROM vehicles WHERE id = NEW.vehicle_id)
+  BEGIN
+    SELECT RAISE(ABORT, 'VEHICLE_ID_REQUIRED');
   END`,
 ] as const;
 

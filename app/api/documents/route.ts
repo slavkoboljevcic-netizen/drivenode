@@ -125,6 +125,11 @@ export async function PATCH(request: Request) {
     };
     const vehicleId = optionalVehicleId(body.vehicleId);
     const db = getDb();
+    if (body.vehicleId != null && !vehicleId)
+      return Response.json(
+        { error: "Povezano vozilo nije ispravno." },
+        { status: 400 },
+      );
     if (vehicleId) {
       const [vehicle] = await db
         .select({ id: vehicles.id })

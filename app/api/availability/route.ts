@@ -6,6 +6,8 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const startsAt = url.searchParams.get("startsAt") || "";
     const endsAt = url.searchParams.get("endsAt") || "";
+    const excludedReservationCode =
+      url.searchParams.get("excludeReservationCode") || undefined;
     const start = new Date(startsAt);
     const end = new Date(endsAt);
     if (
@@ -22,6 +24,7 @@ export async function GET(request: Request) {
       getDb(),
       startsAt,
       endsAt,
+      excludedReservationCode,
     );
     return Response.json({
       availability: Array.from(availability, ([vehicleId, result]) => ({

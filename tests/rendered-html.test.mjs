@@ -107,6 +107,11 @@ test("shared helpers preserve input and display boundaries", async () => {
       { id: 6, name: "Dostupno", plate: "T-6" },
       { id: 7, name: "Isti model", plate: "T-7" },
       { id: 8, name: "Isti model", plate: "T-8" },
+      { id: 9, name: "Istekla registracija", plate: "T-9", registered: true, registrationExpiresAt: "2026-11-23" },
+      { id: 10, name: "Nepoznata registracija", plate: "T-10", registered: true },
+      { id: 11, name: "Neregistrovano", plate: "T-11", registered: false },
+      { id: 12, name: "Važeća registracija", plate: "T-12", registered: true, registrationExpiresAt: "2026-12-31" },
+      { id: 13, name: "Jedinstveni legacy", plate: "T-13" },
     ],
     [
       { vehicleId: 1, vehicle: "Servis", status: "Aktivna" },
@@ -114,9 +119,15 @@ test("shared helpers preserve input and display boundaries", async () => {
       { vehicleId: 3, vehicle: "Arhiva", status: "Aktivna" },
       { vehicleId: 4, vehicle: "Rezervisano", status: "Potvrđena" },
       { vehicleId: 5, vehicle: "Iznajmljeno", status: "Povrat danas" },
+      { vehicleId: 7, vehicle: "Isti model", status: "Potvrđena" },
       { vehicleId: null, vehicle: "Isti model", status: "Potvrđena" },
+      { vehicleId: null, vehicle: "Jedinstveni legacy", status: "Potvrđena" },
     ],
-    [{ vehicleId: 1, plate: "T-1", status: "U toku" }],
+    [
+      { vehicleId: 1, plate: "T-1", status: "U toku" },
+      { vehicleId: null, plate: "T-6", status: "U toku" },
+    ],
+    new Date("2026-11-25T12:00:00Z"),
   );
   assert.deepEqual(
     Array.from(calculatedStatuses.values()),
@@ -127,6 +138,11 @@ test("shared helpers preserve input and display boundaries", async () => {
       "Rezervisano",
       "Iznajmljeno",
       "Dostupno",
+      "Rezervisano",
+      "Dostupno",
+      "Van upotrebe",
+      "Van upotrebe",
+      "Van upotrebe",
       "Dostupno",
       "Dostupno",
     ],
@@ -146,12 +162,17 @@ test("shared helpers preserve input and display boundaries", async () => {
     ],
     [
       { vehicleId: 1, vehicle: "Rezervacija", startsAt: "2026-12-10T10:00", endsAt: "2026-12-11T10:00", status: "Potvrđena", code: "R-1" },
+      { vehicleId: null, vehicle: "Slobodno", startsAt: "2026-12-10T10:00", endsAt: "2026-12-11T10:00", status: "Potvrđena", code: "R-LEGACY" },
     ],
     [
       { vehicleId: 2, plate: "A-2", dueDate: "2026-12-11", endsAt: "2026-12-12", status: "Planirano" },
       { vehicleId: 9, plate: "A-9", dueDate: "2027-01-01", endsAt: "2027-01-01", status: "Planirano" },
+      { vehicleId: null, plate: "A-9", dueDate: "2026-12-11", endsAt: "2026-12-12", status: "Planirano" },
     ],
-    [{ vehicleId: 3, plate: "A-3", status: "U obradi" }],
+    [
+      { vehicleId: 3, plate: "A-3", status: "U obradi" },
+      { vehicleId: null, plate: "A-9", status: "U obradi" },
+    ],
     [{ vehicleId: 8, startsAt: "2026-12-10T12:00", endsAt: "2026-12-11T12:00", status: "Aktivna" }],
     "2026-12-10T09:00",
     "2026-12-12T09:00",
@@ -175,6 +196,34 @@ test("shared helpers preserve input and display boundaries", async () => {
       [10, false, ["REGISTRATION_UNKNOWN"]],
     ],
   );
+  const availabilityWhileEditing = calculateFleetAvailability(
+    [
+      {
+        id: 1,
+        name: "Rezervacija",
+        plate: "A-1",
+        registered: true,
+        registrationExpiresAt: "2027-12-31",
+      },
+    ],
+    [
+      {
+        vehicleId: 1,
+        vehicle: "Rezervacija",
+        startsAt: "2026-12-10T10:00",
+        endsAt: "2026-12-11T10:00",
+        status: "Potvrđena",
+        code: "R-1",
+      },
+    ],
+    [],
+    [],
+    [],
+    "2026-12-10T09:00",
+    "2026-12-12T09:00",
+    "R-1",
+  );
+  assert.equal(availabilityWhileEditing.get(1)?.available, true);
   assert.equal(
     reservationPeriodsOverlap(
       "2026-11-01T10:00",
@@ -359,7 +408,7 @@ test("completed reservations create revenue on the actual completion day", async
   assert.equal(
     legacyRecords.find((record) => record.reference === "AUTO-RES-DN-UNIQUE")
       ?.vehicleId,
-    8,
+    null,
   );
   assert.equal(
     legacyRecords.find((record) => record.reference === "AUTO-RES-DN-DUPLICATE")

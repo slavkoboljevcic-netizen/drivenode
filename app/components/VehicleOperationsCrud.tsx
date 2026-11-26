@@ -1,18 +1,21 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import "../styles/vehicle-operations-crud.css";
-import { displayPlate } from "../lib";
+import { displayPlate, reservationBlocksVehicle } from "../lib";
 import Button from "./Button";
 import CustomDatePicker from "./CustomDatePicker";
 import CustomInput from "./CustomInput";
 import CustomSelect from "./CustomSelect";
 import { AddIcon, CloseIcon, DocumentIcon, MoreIcon } from "./icons";
+import ReservationEntitySearch from "./ReservationEntitySearch";
 import { DrawerFrame, EmptyState, onKeyboardAction } from "./ui";
 type Vehicle = { id: number; name: string; plate: string; km: string; location: string; registered?: boolean; archivedAt?: string | null };
+type Client = { id: number; name: string; email: string; phone: string };
 
 type Row = {
   id?: number;
   vehicleId?: number | null;
+  clientId?: number | null;
   code?: string;
   reference?: string;
   type?: string;
@@ -38,6 +41,7 @@ type Row = {
   paymentMethod?: string;
 };
 type Form = {
+  clientId: string;
   title: string;
   date: string;
   endDate: string;
@@ -151,6 +155,7 @@ function Drawer({
 }) {
   const editing = Boolean(row);
   const [form, setForm] = useState<Form>({
+    clientId: row?.clientId ? String(row.clientId) : "",
     title: row ? titleOf(row) : "",
     date:
       tab === "Rezervacije" || tab === "Blokade"
@@ -164,12 +169,156 @@ function Drawer({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [clients, setClients] = useState<Client[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(tab === "Rezervacije");
+  const [clientsError, setClientsError] = useState("");
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [vehicleAvailable, setVehicleAvailable] = useState<boolean | null>(null);
   const set = (k: keyof Form, value: string) =>
     setForm((x) => ({ ...x, [k]: value }));
+  useEffect(() => {
+    if (tab !== "Rezervacije") return;
+    let active = true;
+    const loadClients = async () => {
+      setClientsLoading(true);
+      setClientsError("");
+      try {
+        const [clientsResponse, deletionResponse] = await Promise.all([
+          fetch("/api/clients"),
+          fetch("/api/deletions?entity=clients"),
+        ]);
+        const [clientsData, deletionData] = await Promise.all([
+          clientsResponse.json(),
+          deletionResponse.json(),
+        ]);
+        if (!clientsResponse.ok || !deletionResponse.ok)
+          throw new Error("Klijenti nisu učitani.");
+        if (!active) return;
+        const deletedEmails = new Set<string>(deletionData.deleted || []);
+        setClients(
+          ((clientsData.clients || []) as Client[]).filter(
+            (client) =>
+              Number.isInteger(client.id) && !deletedEmails.has(client.email),
+          ),
+        );
+      } catch {
+        if (active)
+          setClientsError(
+            "Klijenti trenutno nisu dostupni. Zatvorite prozor i pokušajte ponovo.",
+          );
+      } finally {
+        if (active) setClientsLoading(false);
+      }
+    };
+    void loadClients();
+    return () => {
+      active = false;
+    };
+  }, [tab]);
+  useEffect(() => {
+    if (tab !== "Rezervacije" || !reservationBlocksVehicle(form.status)) {
+      setAvailabilityLoading(false);
+      setAvailabilityError("");
+      setVehicleAvailable(null);
+      return;
+    }
+    const start = new Date(form.date);
+    const end = new Date(form.endDate);
+    if (
+      !form.date ||
+      !form.endDate ||
+      !Number.isFinite(start.getTime()) ||
+      !Number.isFinite(end.getTime()) ||
+      end <= start
+    ) {
+      setAvailabilityLoading(false);
+      setAvailabilityError("");
+      setVehicleAvailable(null);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      startsAt: form.date,
+      endsAt: form.endDate,
+    });
+    if (row?.code) params.set("excludeReservationCode", row.code);
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+    setVehicleAvailable(null);
+    fetch(`/api/availability?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Dostupnost nije proverena.");
+        return data;
+      })
+      .then((data) => {
+        const result = (data.availability || []).find(
+          (item: { vehicleId: number }) => item.vehicleId === v.id,
+        ) as
+          | {
+              available: boolean;
+              reasons?: { message: string }[];
+            }
+          | undefined;
+        if (!result) throw new Error("Dostupnost vozila nije pronađena.");
+        setVehicleAvailable(result.available);
+        if (!result.available)
+          setAvailabilityError(
+            result.reasons?.map((reason) => reason.message).join(" ") ||
+              "Vozilo nije dostupno u izabranom periodu.",
+          );
+      })
+      .catch((requestError) => {
+        if (
+          requestError instanceof DOMException &&
+          requestError.name === "AbortError"
+        ) return;
+        setVehicleAvailable(false);
+        setAvailabilityError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Dostupnost vozila trenutno nije moguće proveriti.",
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setAvailabilityLoading(false);
+      });
+    return () => controller.abort();
+  }, [form.date, form.endDate, form.status, row?.code, tab, v.id]);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
+    if (tab === "Rezervacije") {
+      if (!Number.isInteger(Number(form.clientId)) || Number(form.clientId) < 1) {
+        setError("Izaberite postojećeg klijenta iz sistema.");
+        return;
+      }
+      const start = new Date(form.date);
+      const end = new Date(form.endDate);
+      if (
+        !Number.isFinite(start.getTime()) ||
+        !Number.isFinite(end.getTime()) ||
+        end <= start
+      ) {
+        setError("Datum vraćanja mora biti posle datuma preuzimanja.");
+        return;
+      }
+      if (
+        reservationBlocksVehicle(form.status) &&
+        (availabilityLoading || vehicleAvailable !== true)
+      ) {
+        setError(
+          availabilityError ||
+            "Sačekajte da sistem potvrdi dostupnost vozila.",
+        );
+        return;
+      }
+    }
+    setSaving(true);
     let body: Record<string, unknown>;
     if (tab === "Servisi")
       body = {
@@ -212,8 +361,8 @@ function Drawer({
     else if (tab === "Rezervacije")
       body = {
         code: row?.code,
+        clientId: Number(form.clientId),
         vehicleId: v.id,
-        client: form.title,
         vehicle: v.name,
         startsAt: form.date,
         endsAt: form.endDate,
@@ -259,10 +408,43 @@ function Drawer({
         <h2>{v.name}</h2>
         {row && <p className="drawer-intro">Referenca: {keyOf(row)}</p>}
         <form onSubmit={submit}>
-          <label>
-            {tab === "Rezervacije"
-              ? "Klijent"
-              : tab === "Servisi"
+          {tab === "Rezervacije" ? (
+            <div className="reservation-search-field">
+              <label htmlFor={`vehicle-reservation-client-${v.id}`}>
+                Klijent *
+              </label>
+              <ReservationEntitySearch
+                disabled={clientsLoading || clients.length === 0}
+                emptyMessage="Nema klijenta koji odgovara pretrazi."
+                inputId={`vehicle-reservation-client-${v.id}`}
+                loading={clientsLoading}
+                loadingPlaceholder="Učitavanje klijenata…"
+                noOptionsMessage="Nema unetih klijenata"
+                onSelect={(clientId) => {
+                  const client = clients.find(
+                    (item) => item.id === Number(clientId),
+                  );
+                  setForm((current) => ({
+                    ...current,
+                    clientId,
+                    title: client?.name || "",
+                  }));
+                }}
+                options={clients.map((client) => ({
+                  id: client.id,
+                  label: client.name,
+                  meta: `ID #${client.id}`,
+                  searchText: `${client.name} ${client.email} ${client.phone}`,
+                  selectedText: `${client.name} — ID #${client.id}`,
+                  subtitle: `${client.email} • ${client.phone}`,
+                }))}
+                placeholder="Unesite ime, email ili broj telefona"
+                value={form.clientId}
+              />
+            </div>
+          ) : (
+            <label>
+              {tab === "Servisi"
                 ? "Tip servisa"
                 : tab === "Blokade"
                   ? "Razlog blokade"
@@ -275,7 +457,8 @@ function Drawer({
               value={form.title}
               onChange={(e) => set("title", e.target.value)}
             />
-          </label>
+            </label>
+          )}
           <div className="add-form-grid">
             <label>
               {tab === "Rezervacije"
@@ -352,12 +535,29 @@ function Drawer({
               />
             </label>
           )}
+          {clientsError && <div className="form-error">{clientsError}</div>}
+          {availabilityLoading && (
+            <div className="drawer-intro">Proveravanje dostupnosti vozila…</div>
+          )}
+          {availabilityError && (
+            <div className="form-error">{availabilityError}</div>
+          )}
           {error && <div className="form-error">{error}</div>}
           <div className="modal-actions">
             <Button type="button" variant="outline" onClick={close}>
               Otkaži
             </Button>
-            <Button variant="primary" disabled={saving}>
+            <Button
+              variant="primary"
+              disabled={
+                saving ||
+                (tab === "Rezervacije" &&
+                  (clientsLoading ||
+                    Boolean(clientsError) ||
+                    (reservationBlocksVehicle(form.status) &&
+                      (availabilityLoading || vehicleAvailable !== true))))
+              }
+            >
               {saving ? "Čuvanje…" : editing ? "Sačuvaj izmene" : "Dodaj zapis"}
             </Button>
           </div>
@@ -391,22 +591,12 @@ export default function VehicleOperationsCrud({
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         const all = (d[c.key] || []) as Row[];
-        setRows(
-          all.filter((x) =>
-            x.vehicleId === v.id ||
-            (!x.vehicleId &&
-              (tab === "Troškovi"
-                ? x.description?.startsWith(`[${v.plate}]`)
-                : tab === "Rezervacije"
-                  ? x.vehicle === v.name
-                  : x.plate === v.plate)),
-          ),
-        );
+        setRows(all.filter((x) => x.vehicleId === v.id));
         setError("");
       })
       .catch(() => setError("Zapisi trenutno nisu dostupni."))
       .finally(() => setLoading(false));
-  }, [tab, v.id, v.name, v.plate]);
+  }, [tab, v.id]);
   useEffect(() => {
     load();
   }, [load]);

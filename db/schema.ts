@@ -35,7 +35,9 @@ export const reservations = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
-    vehicleId: integer("vehicle_id"),
+    vehicleId: integer("vehicle_id").references(() => vehicles.id, {
+      onDelete: "restrict",
+    }),
     clientId: integer("client_id"),
     client: text("client").notNull(),
     vehicle: text("vehicle").notNull(),
@@ -80,7 +82,9 @@ export const serviceRecords = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
-    vehicleId: integer("vehicle_id"),
+    vehicleId: integer("vehicle_id").references(() => vehicles.id, {
+      onDelete: "restrict",
+    }),
     vehicle: text("vehicle").notNull(),
     plate: text("plate").notNull(),
     type: text("type").notNull(),
@@ -106,7 +110,9 @@ export const transactions = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     reference: text("reference").notNull(),
-    vehicleId: integer("vehicle_id"),
+    vehicleId: integer("vehicle_id").references(() => vehicles.id, {
+      onDelete: "restrict",
+    }),
     description: text("description").notNull(),
     category: text("category").notNull(),
     kind: text("kind").notNull(),
@@ -131,7 +137,9 @@ export const documents = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
-    vehicleId: integer("vehicle_id"),
+    vehicleId: integer("vehicle_id").references(() => vehicles.id, {
+      onDelete: "restrict",
+    }),
     folder: text("folder").notNull(),
     linkedTo: text("linked_to").notNull().default(""),
     uploadedBy: text("uploaded_by").notNull().default("Marko Nikolić"),
@@ -191,7 +199,9 @@ export const vehicleDamages = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
-    vehicleId: integer("vehicle_id"),
+    vehicleId: integer("vehicle_id").references(() => vehicles.id, {
+      onDelete: "restrict",
+    }),
     vehicle: text("vehicle").notNull(),
     plate: text("plate").notNull(),
     description: text("description").notNull(),
@@ -214,7 +224,9 @@ export const vehicleAvailabilityBlocks = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     code: text("code").notNull(),
-    vehicleId: integer("vehicle_id").notNull(),
+    vehicleId: integer("vehicle_id")
+      .notNull()
+      .references(() => vehicles.id, { onDelete: "restrict" }),
     reason: text("reason").notNull(),
     startsAt: text("starts_at").notNull(),
     endsAt: text("ends_at").notNull(),

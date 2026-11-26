@@ -77,17 +77,6 @@ export function buildFinancialRecords({
   const vehicleLocations = new Map(
     vehicleRows.map((vehicle) => [vehicle.id, cityFromLocation(vehicle.location)]),
   );
-  const legacyLocations = new Map(
-    vehicleRows.map((vehicle) => [vehicle.plate, cityFromLocation(vehicle.location)]),
-  );
-  const uniqueVehicleByName = new Map<string, number | null>();
-  for (const vehicle of vehicleRows) {
-    const name = normalized(vehicle.name);
-    uniqueVehicleByName.set(
-      name,
-      uniqueVehicleByName.has(name) ? null : vehicle.id,
-    );
-  }
 
   const visibleManualRecords = manual.filter(
     (transaction) => !hiddenTransactions.has(transaction.reference),
@@ -141,17 +130,13 @@ export function buildFinancialRecords({
       (reservation) => reservation.code,
     ),
   );
-  const resolveReservationVehicleId = (reservation: ReservationRow) => {
-    if (reservation.vehicleId) return reservation.vehicleId;
-    return uniqueVehicleByName.get(normalized(reservation.vehicle)) || null;
-  };
   const manualRecords = visibleManualRecords.map((transaction) => {
     const reservation = reservationByManualReference.get(transaction.reference);
     if (!reservation) return transaction;
     return {
       ...transaction,
       vehicleId:
-        transaction.vehicleId || resolveReservationVehicleId(reservation),
+        transaction.vehicleId || reservation.vehicleId,
       notes:
         transaction.notes ||
         `Povezano sa završenom rezervacijom ${reservation.code}.`,
@@ -175,7 +160,6 @@ export function buildFinancialRecords({
         (service.vehicleId
           ? vehicleLocations.get(service.vehicleId)
           : undefined) ||
-        legacyLocations.get(service.plate) ||
         "Nije određena",
       status:
         service.status === "Završeno"
@@ -191,7 +175,7 @@ export function buildFinancialRecords({
     completedReservations
     .filter((reservation) => !linkedReservationCodes.has(reservation.code))
     .map((reservation) => {
-      const vehicleId = resolveReservationVehicleId(reservation);
+      const vehicleId = reservation.vehicleId;
       const vehicle = vehicleId
         ? vehiclesById.get(vehicleId)
         : undefined;

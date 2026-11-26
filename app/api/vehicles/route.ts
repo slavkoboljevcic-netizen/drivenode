@@ -3,7 +3,7 @@ import {
   clean,
   reservationBlocksVehicle,
 } from "../../lib";
-import { and, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { getFleetAvailability } from "../../server/vehicleAvailability";
 import {
@@ -157,15 +157,7 @@ export async function PATCH(request: Request) {
         db
           .select()
           .from(reservations)
-          .where(
-            or(
-              eq(reservations.vehicleId, id),
-              and(
-                isNull(reservations.vehicleId),
-                sql`lower(trim(${reservations.vehicle})) = lower(trim(${current.name}))`,
-              ),
-            ),
-          ),
+          .where(eq(reservations.vehicleId, id)),
         db
           .select({ code: deletedRecords.recordKey })
           .from(deletedRecords)
@@ -281,67 +273,27 @@ export async function DELETE(request: Request) {
       db
         .select({ id: reservations.id })
         .from(reservations)
-        .where(
-          or(
-            eq(reservations.vehicleId, id),
-            and(
-              isNull(reservations.vehicleId),
-              sql`lower(trim(${reservations.vehicle})) = lower(trim(${vehicle.name}))`,
-            ),
-          ),
-        )
+        .where(eq(reservations.vehicleId, id))
         .limit(1),
       db
         .select({ id: transactions.id })
         .from(transactions)
-        .where(
-          or(
-            eq(transactions.vehicleId, id),
-            and(
-              isNull(transactions.vehicleId),
-              sql`instr(lower(${transactions.description}), lower(${vehicle.plate})) > 0`,
-            ),
-          ),
-        )
+        .where(eq(transactions.vehicleId, id))
         .limit(1),
       db
         .select({ id: documents.id })
         .from(documents)
-        .where(
-          or(
-            eq(documents.vehicleId, id),
-            and(
-              isNull(documents.vehicleId),
-              sql`lower(trim(${documents.linkedTo})) = lower(trim(${vehicle.plate}))`,
-            ),
-          ),
-        )
+        .where(eq(documents.vehicleId, id))
         .limit(1),
       db
         .select({ id: serviceRecords.id })
         .from(serviceRecords)
-        .where(
-          or(
-            eq(serviceRecords.vehicleId, id),
-            and(
-              isNull(serviceRecords.vehicleId),
-              sql`lower(trim(${serviceRecords.plate})) = lower(trim(${vehicle.plate}))`,
-            ),
-          ),
-        )
+        .where(eq(serviceRecords.vehicleId, id))
         .limit(1),
       db
         .select({ id: vehicleDamages.id })
         .from(vehicleDamages)
-        .where(
-          or(
-            eq(vehicleDamages.vehicleId, id),
-            and(
-              isNull(vehicleDamages.vehicleId),
-              sql`lower(trim(${vehicleDamages.plate})) = lower(trim(${vehicle.plate}))`,
-            ),
-          ),
-        )
+        .where(eq(vehicleDamages.vehicleId, id))
         .limit(1),
       db
         .select({ id: vehicleAvailabilityBlocks.id })

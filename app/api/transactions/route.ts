@@ -125,9 +125,28 @@ export async function PATCH(request: Request) {
         { status: 400 },
       );
     const full = clean(body.description);
+    const vehicleId = optionalVehicleId(body.vehicleId);
+    const db = getDb();
+    if (full && body.vehicleId != null && !vehicleId) {
+      return Response.json(
+        { error: "Izabrano vozilo nije ispravno." },
+        { status: 400 },
+      );
+    }
+    if (full && vehicleId) {
+      const [vehicle] = await db
+        .select({ id: vehicles.id })
+        .from(vehicles)
+        .where(eq(vehicles.id, vehicleId));
+      if (!vehicle)
+        return Response.json(
+          { error: "Izabrano vozilo više ne postoji." },
+          { status: 400 },
+        );
+    }
     const values = full
       ? {
-          vehicleId: optionalVehicleId(body.vehicleId),
+          vehicleId,
           description: full,
           category: clean(body.category),
           kind: clean(body.kind),
@@ -152,7 +171,7 @@ export async function PATCH(request: Request) {
         { error: "Popunite sva obavezna polja." },
         { status: 400 },
       );
-    const [transaction] = await getDb()
+    const [transaction] = await db
       .update(transactions)
       .set(values)
       .where(eq(transactions.reference, reference))

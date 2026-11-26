@@ -4,7 +4,6 @@ import {
   type ErrorInfo,
   type ReactNode,
   useEffect,
-  useId,
   useState,
 } from "react";
 import "./styles/calendar.css";
@@ -25,6 +24,7 @@ import BookingCalendar from "./components/BookingCalendar";
 import DashboardLive from "./components/DashboardLive";
 import GlobalSearch from "./components/GlobalSearch";
 import NotificationCenter from "./components/NotificationCenter";
+import ReservationEntitySearch from "./components/ReservationEntitySearch";
 import ThemeToggle from "./components/ThemeToggle";
 import VehicleOperationsCrud from "./components/VehicleOperationsCrud";
 import Button from "./components/Button";
@@ -1443,6 +1443,14 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
     "Štete",
     "Blokade",
   ];
+  const registeredUntil =
+    current.registered === false
+      ? "Nije registrovano"
+      : current.registrationExpiresAt
+        ? new Date(
+            `${current.registrationExpiresAt}T12:00:00`,
+          ).toLocaleDateString("sr-Latn-RS")
+        : "Nije uneto";
   const refreshCalculatedStatus = () => {
     fetch("/api/vehicles?includeArchived=true")
       .then((response) =>
@@ -1523,12 +1531,7 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
                 "Status registracije",
                 current.registered === false ? "Nije registrovano" : "Registrovano",
               ],
-              [
-                "Registracija važi do",
-                current.registrationExpiresAt
-                  ? new Date(`${current.registrationExpiresAt}T12:00:00`).toLocaleDateString("sr-Latn-RS")
-                  : "Nije uneto",
-              ],
+              ["Registrovano do", registeredUntil],
               ["VIN", current.vin || "Nije unet"],
               ["Kilometraža", current.km],
               ["Gorivo", current.fuel || "Nije uneto"],
@@ -1558,14 +1561,6 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
               <div>
                 <small>Sledeći servis</small>
                 <b>{current.service}</b>
-              </div>
-              <div>
-                <small>Registracija važi do</small>
-                <b>
-                  {current.registrationExpiresAt
-                    ? new Date(`${current.registrationExpiresAt}T12:00:00`).toLocaleDateString("sr-Latn-RS")
-                    : "Nema podataka"}
-                </b>
               </div>
             </div>
           </section>
@@ -1605,9 +1600,7 @@ function VehicleDocuments({ v }: { v: V }) {
       .then((d) =>
         setDocs(
           (d.documents || []).filter(
-            (x: D) =>
-              x.vehicleId === v.id ||
-              (!x.vehicleId && x.linkedTo === v.plate),
+            (x: D) => x.vehicleId === v.id,
           ),
         ),
       )
@@ -1988,7 +1981,7 @@ function Reservations({
     .filter((b, i, a) => a.findIndex((x) => x.id === b.id) === i)
     .map((b) => ({ ...b, status: overrides[b.id] || b.status }));
   const vehicleKey = (booking: B) =>
-    booking.vehicleId ? String(booking.vehicleId) : `legacy:${booking.vehicle}`;
+    booking.vehicleId ? String(booking.vehicleId) : `legacy:${booking.id}`;
   const vehicleOptions = Array.from(
     new Map(
       all.map((booking) => [
@@ -2222,166 +2215,6 @@ function Reservations({
         </div>
       </section>
     </>
-  );
-}
-
-type ReservationSearchOption = {
-  id: number;
-  label: string;
-  meta: string;
-  searchText: string;
-  selectedText: string;
-  subtitle: string;
-};
-
-const normalizeReservationSearch = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
-
-function ReservationEntitySearch({
-  disabled,
-  emptyMessage,
-  inputId,
-  loading,
-  loadingPlaceholder,
-  noOptionsMessage,
-  onSelect,
-  options,
-  placeholder,
-  value,
-}: {
-  disabled: boolean;
-  emptyMessage: string;
-  inputId: string;
-  loading: boolean;
-  loadingPlaceholder: string;
-  noOptionsMessage: string;
-  onSelect: (id: string) => void;
-  options: ReservationSearchOption[];
-  placeholder: string;
-  value: string;
-}) {
-  const listboxId = useId();
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const normalizedQuery = normalizeReservationSearch(query);
-  const compactQuery = normalizedQuery.replace(/[^a-z0-9]/g, "");
-  const matches = normalizedQuery
-    ? options
-        .filter((option) => {
-          const text = normalizeReservationSearch(option.searchText);
-          const compactText = text.replace(/[^a-z0-9]/g, "");
-          return (
-            text.includes(normalizedQuery) ||
-            (compactQuery.length > 0 && compactText.includes(compactQuery))
-          );
-        })
-        .slice(0, 8)
-    : [];
-  const showResults = open && normalizedQuery.length > 0;
-
-  const choose = (option: ReservationSearchOption) => {
-    onSelect(String(option.id));
-    setQuery(option.selectedText);
-    setOpen(false);
-    setActiveIndex(-1);
-  };
-
-  return (
-    <div
-      className="reservation-search"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setOpen(false);
-          setActiveIndex(-1);
-        }
-      }}
-    >
-      <CustomInput
-        aria-activedescendant={
-          showResults && activeIndex >= 0 && matches[activeIndex]
-            ? `${listboxId}-${matches[activeIndex].id}`
-            : undefined
-        }
-        aria-autocomplete="list"
-        aria-controls={showResults ? listboxId : undefined}
-        aria-expanded={showResults}
-        autoComplete="off"
-        disabled={disabled}
-        id={inputId}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          onSelect("");
-          setOpen(Boolean(event.target.value.trim()));
-          setActiveIndex(-1);
-        }}
-        onFocus={() => {
-          if (!value && query.trim()) setOpen(true);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            setOpen(false);
-            setActiveIndex(-1);
-            return;
-          }
-          if (!showResults || !matches.length) return;
-          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-            event.preventDefault();
-            const direction = event.key === "ArrowDown" ? 1 : -1;
-            setActiveIndex((current) => {
-              if (current < 0)
-                return direction === 1 ? 0 : matches.length - 1;
-              return (current + direction + matches.length) % matches.length;
-            });
-          } else if (event.key === "Enter") {
-            event.preventDefault();
-            choose(matches[activeIndex >= 0 ? activeIndex : 0]);
-          }
-        }}
-        placeholder={
-          loading
-            ? loadingPlaceholder
-            : options.length
-              ? placeholder
-              : noOptionsMessage
-        }
-        role="combobox"
-        value={query}
-      />
-      {showResults && (
-        <div
-          className="reservation-search-results"
-          id={listboxId}
-          role="listbox"
-        >
-          {matches.map((option, index) => (
-            <Button
-              aria-selected={index === activeIndex}
-              className={`reservation-search-option${index === activeIndex ? " active" : ""}`}
-              id={`${listboxId}-${option.id}`}
-              key={option.id}
-              onClick={() => choose(option)}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActiveIndex(index)}
-              role="option"
-              type="button"
-            >
-              <strong>
-                {option.label} <em>{option.meta}</em>
-              </strong>
-              <span>{option.subtitle}</span>
-            </Button>
-          ))}
-          {!matches.length && (
-            <div className="reservation-search-state">{emptyMessage}</div>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -3724,18 +3557,18 @@ function ServiceForm({
   saved: (s: S) => void;
 }) {
   const [vehicleOptions, setVehicleOptions] = useState<V[]>([]);
-  const [vehiclePlate, setVehiclePlate] = useState("");
+  const [vehicleId, setVehicleId] = useState("");
   useEffect(() => {
     fetch("/api/vehicles")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((d) => {
         const list = d.vehicles || [];
         setVehicleOptions(list);
-        if (list[0]) setVehiclePlate(list[0].plate);
+        if (list[0]) setVehicleId(String(list[0].id));
       })
       .catch(() => {});
   }, []);
-  const vehicle = vehicleOptions.find((v) => v.plate === vehiclePlate);
+  const vehicle = vehicleOptions.find((v) => v.id === Number(vehicleId));
   const [form, setForm] = useState({
     type: "Redovan servis",
     dueDate: "",
@@ -3789,12 +3622,12 @@ function ServiceForm({
           <label>
             Vozilo *
             <CustomSelect
-              value={vehiclePlate}
-              onChange={(e) => setVehiclePlate(e.target.value)}
+              value={vehicleId}
+              onChange={(e) => setVehicleId(e.target.value)}
             >
               <option value="">Izaberite vozilo</option>
               {vehicleOptions.map((v) => (
-                <option value={v.plate} key={v.plate}>
+                <option value={v.id} key={v.id}>
                   {v.name} • {displayPlate(v.plate, v.registered)}
                 </option>
               ))}

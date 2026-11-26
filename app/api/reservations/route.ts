@@ -3,7 +3,7 @@ import {
   reservationBlocksVehicle,
   reservationPeriodsOverlap,
 } from "../../lib";
-import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { getFleetAvailability } from "../../server/vehicleAvailability";
 import {
@@ -106,8 +106,7 @@ async function findSelectableClient(
 
 async function findReservationConflict(
   db: ReturnType<typeof getDb>,
-  vehicleId: number | null,
-  vehicle: string,
+  vehicleId: number,
   startsAt: string,
   endsAt: string,
   excludedCode?: string,
@@ -116,20 +115,7 @@ async function findReservationConflict(
     db
       .select()
       .from(reservations)
-      .where(
-        vehicleId === null
-          ? and(
-              isNull(reservations.vehicleId),
-              sql`lower(trim(${reservations.vehicle})) = lower(trim(${vehicle}))`,
-            )
-          : or(
-              eq(reservations.vehicleId, vehicleId),
-              and(
-                isNull(reservations.vehicleId),
-                sql`lower(trim(${reservations.vehicle})) = lower(trim(${vehicle}))`,
-              ),
-            ),
-      ),
+      .where(eq(reservations.vehicleId, vehicleId)),
     db
       .select({ code: deletedRecords.recordKey })
       .from(deletedRecords)
@@ -228,7 +214,6 @@ export async function POST(request: Request) {
       const conflict = await findReservationConflict(
         db,
         vehicleId,
-        vehicle,
         startsAt,
         endsAt,
       );
@@ -329,10 +314,19 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Podaci rezervacije nisu ispravni." }, { status: 400 });
     }
     if (reservationBlocksVehicle(status)) {
+      if (!proposed.vehicleId) {
+        return Response.json(
+          {
+            error:
+              "Ovaj stari zapis nije povezan sa konkretnim vozilom. Otvorite izmenu rezervacije i izaberite vozilo pre aktiviranja.",
+            code: "VEHICLE_ID_REQUIRED",
+          },
+          { status: 409 },
+        );
+      }
       const conflict = await findReservationConflict(
         db,
         proposed.vehicleId,
-        proposed.vehicle,
         proposed.startsAt,
         proposed.endsAt,
         code,
