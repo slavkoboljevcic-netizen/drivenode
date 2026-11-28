@@ -9,6 +9,8 @@ export const displayPlate = (plate: string, registered?: boolean) =>
 
 type SearchableVehicle = {
   name: string;
+  make?: string;
+  model?: string;
   plate: string;
   year: number;
   location: string;
@@ -16,6 +18,8 @@ type SearchableVehicle = {
   vin?: string;
   fuel?: string;
   transmission?: string;
+  category?: string;
+  seats?: number;
   registered?: boolean;
 };
 
@@ -68,6 +72,8 @@ export const vehicleMatchesSearch = (
   const searchable = normalizeVehicleSearch(
     [
       vehicle.name,
+      vehicle.make,
+      vehicle.model,
       vehicle.plate,
       vehicle.year,
       vehicle.location,
@@ -75,6 +81,8 @@ export const vehicleMatchesSearch = (
       vehicle.vin,
       vehicle.fuel,
       vehicle.transmission,
+      vehicle.category,
+      vehicle.seats,
       ...aliases,
     ].join(" "),
   );
@@ -104,6 +112,78 @@ const NON_BLOCKING_RESERVATION_STATUSES = new Set(["Završena", "Otkazana"]);
 export const reservationBlocksVehicle = (status: string) =>
   !NON_BLOCKING_RESERVATION_STATUSES.has(status);
 
+type UtilizationReservation = {
+  vehicleId: number | null;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+};
+
+const UTILIZATION_STATUSES = new Set(["Aktivna", "Povrat danas", "Završena"]);
+const DAY_IN_MILLISECONDS = 86_400_000;
+
+export const calculateFleetUtilization = (
+  reservations: readonly UtilizationReservation[],
+  activeVehicleIds: readonly number[],
+  periodStartsAt: Date,
+  periodEndsAt: Date,
+) => {
+  const periodStart = periodStartsAt.getTime();
+  const periodEnd = periodEndsAt.getTime();
+  const vehicleIds = new Set(activeVehicleIds);
+  const capacityMilliseconds =
+    Number.isFinite(periodStart) &&
+    Number.isFinite(periodEnd) &&
+    periodEnd > periodStart
+      ? vehicleIds.size * (periodEnd - periodStart)
+      : 0;
+  const periodsByVehicle = new Map<number, Array<[number, number]>>();
+
+  if (capacityMilliseconds) {
+    for (const reservation of reservations) {
+      if (
+        !reservation.vehicleId ||
+        !vehicleIds.has(reservation.vehicleId) ||
+        !UTILIZATION_STATUSES.has(reservation.status)
+      ) continue;
+      const start = Math.max(new Date(reservation.startsAt).getTime(), periodStart);
+      const end = Math.min(new Date(reservation.endsAt).getTime(), periodEnd);
+      if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+        continue;
+      const periods = periodsByVehicle.get(reservation.vehicleId) || [];
+      periods.push([start, end]);
+      periodsByVehicle.set(reservation.vehicleId, periods);
+    }
+  }
+
+  let rentedMilliseconds = 0;
+  for (const periods of Array.from(periodsByVehicle.values())) {
+    periods.sort((first, second) => first[0] - second[0]);
+    let currentStart = periods[0][0];
+    let currentEnd = periods[0][1];
+    for (let index = 1; index < periods.length; index += 1) {
+      const [start, end] = periods[index];
+      if (start <= currentEnd) currentEnd = Math.max(currentEnd, end);
+      else {
+        rentedMilliseconds += currentEnd - currentStart;
+        currentStart = start;
+        currentEnd = end;
+      }
+    }
+    rentedMilliseconds += currentEnd - currentStart;
+  }
+
+  return {
+    percentage: capacityMilliseconds
+      ? Math.min(100, Math.round((rentedMilliseconds / capacityMilliseconds) * 100))
+      : 0,
+    rentedVehicleDays:
+      Math.round((rentedMilliseconds / DAY_IN_MILLISECONDS) * 10) / 10,
+    capacityVehicleDays:
+      Math.round((capacityMilliseconds / DAY_IN_MILLISECONDS) * 10) / 10,
+  };
+};
+
 export type CalculatedVehicleStatus =
   | "Dostupno"
   | "Rezervisano"
@@ -123,6 +203,8 @@ type StatusVehicle = {
 type StatusReservation = {
   vehicleId: number | null;
   status: string;
+  startsAt?: string;
+  endsAt?: string;
 };
 
 type StatusService = {
@@ -187,6 +269,17 @@ export const calculateVehicleStatuses = (
 
   for (const reservation of reservations) {
     if (!reservationBlocksVehicle(reservation.status)) continue;
+    const startsAt = reservation.startsAt
+      ? new Date(reservation.startsAt).getTime()
+      : Number.NaN;
+    const endsAt = reservation.endsAt
+      ? new Date(reservation.endsAt).getTime()
+      : Number.NaN;
+    const hasValidPeriod = Number.isFinite(startsAt) && Number.isFinite(endsAt);
+    if (
+      hasValidPeriod &&
+      (startsAt > now.getTime() || endsAt <= now.getTime())
+    ) continue;
     const vehicleId = reservation.vehicleId;
     if (vehicleId && statusById.get(vehicleId) === "Dostupno")
       statusById.set(vehicleId, "Rezervisano");

@@ -23,6 +23,17 @@ const asRegistered = (value: unknown) => !(
 const asOutOfService = (value: unknown) =>
   value === true || value === 1 || value === "1" || value === "true" || value === "Van upotrebe";
 const makeInternalPlate = () => `DNFM-NEREG-${crypto.randomUUID().toUpperCase()}`;
+const vehicleCategories = new Set([
+  "Economy",
+  "Compact",
+  "Intermediate",
+  "Full-size",
+  "SUV",
+  "Minivan",
+  "Premium",
+  "Convertible",
+  "Commercial",
+]);
 const validId = (value: unknown) => {
   const id = Number(value);
   return Number.isInteger(id) && id > 0 ? id : null;
@@ -32,6 +43,9 @@ const validOptionalDate = (value: string | null) =>
 
 const isArchiveBlocked = (error: unknown) =>
   error instanceof Error && error.message.includes("VEHICLE_HAS_ACTIVE_RESERVATIONS");
+const isVinConflict = (message: string) =>
+  message.includes("idx_vehicles_vin_unique") ||
+  message.includes("vehicles.vin");
 
 type VehicleRow = typeof vehicles.$inferSelect;
 
@@ -102,13 +116,17 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json() as Record<string, unknown>;
-    const name = clean(body.name);
+    const make = clean(body.make);
+    const model = clean(body.model);
+    const name = `${make} ${model}`.trim();
     let plate = clean(body.plate);
     const location = clean(body.location);
     const service = clean(body.service) || "Nije zakazano";
     const vin = clean(body.vin).toUpperCase();
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
+    const category = clean(body.category);
+    const seats = Number(body.seats);
     const registered = asRegistered(body.registered);
     const registrationExpiresAt = registered
       ? clean(body.registrationExpiresAt) || null
@@ -120,17 +138,27 @@ export async function POST(request: Request) {
     if (registered && !plate) {
       return Response.json({ error: "Unesite registarsku oznaku. Prihvaćeni su svi formati tablica." }, { status: 400 });
     }
-    if (!name || !location || (registered && !registrationExpiresAt) || !validOptionalDate(registrationExpiresAt) || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+    if (!make || !model || !location || !fuel || !transmission || !vehicleCategories.has(category) || !Number.isInteger(seats) || seats < 1 || seats > 20 || (registered && !registrationExpiresAt) || !validOptionalDate(registrationExpiresAt) || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
       return Response.json({ error: "Popunite sva obavezna polja ispravnim podacima." }, { status: 400 });
     }
     const db = getDb();
     const duplicate = await db.select({ id: vehicles.id }).from(vehicles).where(sql`lower(${vehicles.plate}) = lower(${plate})`).limit(1);
     if (duplicate.length) return Response.json({ error: "Vozilo sa ovim registarskim tablicama već postoji." }, { status: 409 });
-    const [vehicle] = await db.insert(vehicles).values({ name, plate, location, status: "Dostupno", service, vin, fuel, transmission, registered, registrationExpiresAt, outOfService, year, km: Math.round(km) }).returning();
+    if (vin) {
+      const duplicateVin = await db
+        .select({ id: vehicles.id })
+        .from(vehicles)
+        .where(sql`upper(trim(${vehicles.vin})) = ${vin}`)
+        .limit(1);
+      if (duplicateVin.length)
+        return Response.json({ error: "Vozilo sa ovim VIN brojem već postoji." }, { status: 409 });
+    }
+    const [vehicle] = await db.insert(vehicles).values({ name, make, model, plate, location, status: "Dostupno", service, vin, fuel, transmission, category, seats, registered, registrationExpiresAt, outOfService, year, km: Math.round(km) }).returning();
     const [calculatedVehicle] = await withCalculatedStatuses(db, [vehicle]);
     return Response.json({ vehicle: calculatedVehicle }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Greška pri dodavanju vozila.";
+    if (isVinConflict(message)) return Response.json({ error: "Vozilo sa ovim VIN brojem već postoji." }, { status: 409 });
     if (message.includes("UNIQUE")) return Response.json({ error: "Vozilo sa ovim registarskim tablicama već postoji." }, { status: 409 });
     return Response.json({ error: message }, { status: 500 });
   }
@@ -211,13 +239,17 @@ export async function PATCH(request: Request) {
     }
 
     const originalPlate = clean(body.originalPlate);
-    const name = clean(body.name);
+    const make = clean(body.make);
+    const model = clean(body.model);
+    const name = `${make} ${model}`.trim();
     let plate = clean(body.plate);
     const location = clean(body.location);
     const service = clean(body.service) || "Nije zakazano";
     const vin = clean(body.vin).toUpperCase();
     const fuel = clean(body.fuel);
     const transmission = clean(body.transmission);
+    const category = clean(body.category);
+    const seats = Number(body.seats);
     const registered = asRegistered(body.registered);
     const registrationExpiresAt = registered
       ? clean(body.registrationExpiresAt) || null
@@ -226,7 +258,7 @@ export async function PATCH(request: Request) {
     if (!registered && !plate) plate = originalPlate || makeInternalPlate();
     const year = Number(body.year);
     const km = Number(body.km);
-    if (!name || (registered && (!plate || !registrationExpiresAt)) || !location || !validOptionalDate(registrationExpiresAt) || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
+    if (!make || !model || !fuel || !transmission || !vehicleCategories.has(category) || !Number.isInteger(seats) || seats < 1 || seats > 20 || (registered && (!plate || !registrationExpiresAt)) || !location || !validOptionalDate(registrationExpiresAt) || !Number.isInteger(year) || year < 1990 || year > 2027 || !Number.isFinite(km) || km < 0) {
       return Response.json({ error: "Popunite sva polja ispravnim podacima." }, { status: 400 });
     }
     const duplicate = await db
@@ -240,7 +272,21 @@ export async function PATCH(request: Request) {
       )
       .limit(1);
     if (duplicate.length) return Response.json({ error: "Vozilo sa ovim tablicama već postoji." }, { status: 409 });
-    const values = { name, plate, year, km: Math.round(km), location, service, vin, fuel, transmission, registered, registrationExpiresAt, outOfService };
+    if (vin) {
+      const duplicateVin = await db
+        .select({ id: vehicles.id })
+        .from(vehicles)
+        .where(
+          and(
+            sql`upper(trim(${vehicles.vin})) = ${vin}`,
+            ne(vehicles.id, id),
+          ),
+        )
+        .limit(1);
+      if (duplicateVin.length)
+        return Response.json({ error: "Vozilo sa ovim VIN brojem već postoji." }, { status: 409 });
+    }
+    const values = { name, make, model, plate, year, km: Math.round(km), location, service, vin, fuel, transmission, category, seats, registered, registrationExpiresAt, outOfService };
     const [vehicle] = await db
       .update(vehicles)
       .set(values)
@@ -253,6 +299,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Vozilo ima aktivne ili buduće rezervacije i ne može biti arhivirano.", code: "VEHICLE_HAS_ACTIVE_RESERVATIONS" }, { status: 409 });
     }
     const message = error instanceof Error ? error.message : "Vozilo nije izmenjeno.";
+    if (isVinConflict(message)) return Response.json({ error: "Vozilo sa ovim VIN brojem već postoji." }, { status: 409 });
     if (message.includes("UNIQUE")) return Response.json({ error: "Vozilo sa ovim tablicama već postoji." }, { status: 409 });
     return Response.json({ error: message }, { status: 500 });
   }

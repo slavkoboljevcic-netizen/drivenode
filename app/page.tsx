@@ -16,6 +16,7 @@ import "./styles/users.css";
 import "./styles/row-menu.css";
 import "./styles/drawer-animations.css";
 import {
+  calculateFleetUtilization,
   displayPlate,
   formatDate,
   vehicleMatchesSearch,
@@ -61,6 +62,8 @@ import {
 type V = {
   id: number;
   name: string;
+  make: string;
+  model: string;
   plate: string;
   year: number;
   km: string;
@@ -70,6 +73,8 @@ type V = {
   vin: string;
   fuel: string;
   transmission: string;
+  category: string;
+  seats: number;
   registered: boolean;
   registrationExpiresAt?: string | null;
   outOfService: boolean;
@@ -80,6 +85,17 @@ type VehicleServiceState = {
   vehicleId: number | null;
   status: string;
 };
+type VehicleKpiReservation = {
+  vehicleId: number | null;
+  startsAt: string;
+  endsAt: string;
+  status: string;
+};
+type VehicleCurrentAvailability = {
+  available: boolean;
+  reasons: Array<{ code: string; message: string }>;
+};
+type VehicleKpiScope = "all" | "available" | "engaged" | "attention";
 
 type B = {
   id: string;
@@ -428,7 +444,7 @@ function Kpis({
   className = "",
 }: {
   items: string[][];
-  actions?: Array<() => void>;
+  actions?: Array<(() => void) | undefined>;
   className?: string;
 }) {
   return (
@@ -532,11 +548,23 @@ function Vehicles({
   >(new Map());
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [availabilityError, setAvailabilityError] = useState("");
+  const [currentAvailabilityByVehicle, setCurrentAvailabilityByVehicle] =
+    useState<Map<number, VehicleCurrentAvailability>>(new Map());
+  const [currentAvailabilityLoading, setCurrentAvailabilityLoading] =
+    useState(true);
+  const [currentAvailabilityError, setCurrentAvailabilityError] = useState("");
+  const [currentMetricsRefresh, setCurrentMetricsRefresh] = useState(0);
+  const [utilizationReservations, setUtilizationReservations] = useState<
+    VehicleKpiReservation[]
+  >([]);
+  const [utilizationLoading, setUtilizationLoading] = useState(true);
+  const [utilizationError, setUtilizationError] = useState("");
   const [serviceStates, setServiceStates] = useState<VehicleServiceState[]>([]);
   const [serviceStatesLoading, setServiceStatesLoading] = useState(true);
   const [serviceStatesError, setServiceStatesError] = useState("");
   const [more, setMore] = useState(false);
   const [sortNew, setSortNew] = useState(false);
+  const [kpiScope, setKpiScope] = useState<VehicleKpiScope>("all");
   const [added, setAdded] = useState<V[]>([]);
   const [showAdd, setShowAdd] = useState(addTrigger > 0);
   const [loading, setLoading] = useState(true);
@@ -553,6 +581,69 @@ function Vehicles({
       )
       .catch(() => setAdded([]))
       .finally(() => setLoading(false));
+  }, [refresh]);
+  useEffect(() => {
+    if (loading) return;
+    const controller = new AbortController();
+    const startsAt = new Date();
+    const endsAt = new Date(startsAt.getTime() + 60_000);
+    setCurrentAvailabilityLoading(true);
+    setCurrentAvailabilityError("");
+    fetch(
+      `/api/availability?startsAt=${encodeURIComponent(startsAt.toISOString())}&endsAt=${encodeURIComponent(endsAt.toISOString())}`,
+      { signal: controller.signal },
+    )
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Dostupnost nije učitana.");
+        return data;
+      })
+      .then((data) =>
+        setCurrentAvailabilityByVehicle(
+          new Map(
+            (data.availability || []).map(
+              (item: {
+                vehicleId: number;
+                available: boolean;
+                reasons: Array<{ code: string; message: string }>;
+              }) => [
+                item.vehicleId,
+                { available: item.available, reasons: item.reasons || [] },
+              ],
+            ),
+          ),
+        ),
+      )
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setCurrentAvailabilityError("Trenutna dostupnost nije učitana.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setCurrentAvailabilityLoading(false);
+      });
+    return () => controller.abort();
+  }, [refresh, added.length, loading, currentMetricsRefresh]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setUtilizationLoading(true);
+    setUtilizationError("");
+    fetch("/api/reservations", { signal: controller.signal })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Rezervacije nisu učitane.");
+        return data;
+      })
+      .then((data) => setUtilizationReservations(data.reservations || []))
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setUtilizationError("Iskorišćenost nije dostupna.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setUtilizationLoading(false);
+      });
+    return () => controller.abort();
   }, [refresh]);
   useEffect(() => {
     const start = new Date(availableFrom);
@@ -687,11 +778,48 @@ function Vehicles({
       : latestServiceStateByVehicle.get(vehicle.id) || "Bez servisnog zapisa";
   const mileageForVehicle = (vehicle: V) =>
     Number(vehicle.km.replace(/\D/g, ""));
+  const currentAvailabilityReady =
+    !loading &&
+    !currentAvailabilityLoading &&
+    !currentAvailabilityError;
+  const availableNowVehicleIds = new Set(
+    activeVehicles
+      .filter(
+        (vehicle) =>
+          currentAvailabilityByVehicle.get(vehicle.id)?.available === true,
+      )
+      .map((vehicle) => vehicle.id),
+  );
+  const engagedVehicleIds = new Set(
+    activeVehicles
+      .filter((vehicle) =>
+        ["Rezervisano", "Iznajmljeno"].includes(vehicle.status),
+      )
+      .map((vehicle) => vehicle.id),
+  );
+  const attentionVehicleIds = new Set(
+    activeVehicles
+      .filter((vehicle) =>
+        currentAvailabilityByVehicle
+          .get(vehicle.id)
+          ?.reasons.some(
+            (reason) =>
+              !["RESERVATION_OVERLAP", "ARCHIVED"].includes(reason.code),
+          ),
+      )
+      .map((vehicle) => vehicle.id),
+  );
+  const matchesKpiScope = (vehicle: V) =>
+    kpiScope === "all" ||
+    (kpiScope === "available" && availableNowVehicleIds.has(vehicle.id)) ||
+    (kpiScope === "engaged" && engagedVehicleIds.has(vehicle.id)) ||
+    (kpiScope === "attention" && attentionVehicleIds.has(vehicle.id));
   const statusVehicles = status === "Arhivirano" ? archivedVehicles : activeVehicles;
   const shown = statusVehicles
     .filter(
       (v) =>
         vehicleMatchesSearch(v, q) &&
+        matchesKpiScope(v) &&
         (status === "Svi statusi" ||
           status === "Arhivirano" ||
           v.status === status) &&
@@ -725,6 +853,7 @@ function Vehicles({
           ? availabilityError
           : "";
   const hasAdvancedFilters =
+    kpiScope !== "all" ||
     location !== "Sve lokacije" ||
     fuel !== "Sva goriva" ||
     transmission !== "Svi menjači" ||
@@ -734,6 +863,13 @@ function Vehicles({
     Boolean(availableFrom || availableTo) ||
     sortNew;
   const activeFilterSummary = [
+    kpiScope === "available"
+      ? "Trenutno dostupna"
+      : kpiScope === "engaged"
+        ? "Rezervisana i u najmu"
+        : kpiScope === "attention"
+          ? "Operativno nedostupna"
+          : "",
     status !== "Svi statusi" ? status : "",
     location !== "Sve lokacije" ? location : "",
     fuel !== "Sva goriva" ? fuel : "",
@@ -750,49 +886,74 @@ function Vehicles({
   ]
     .filter(Boolean)
     .join(" • ");
-  const setKpi = (s: string) => {
-    setStatus(s);
+  const setKpi = (scope: VehicleKpiScope) => {
+    setKpiScope(scope);
+    setStatus("Svi statusi");
     setSortNew(false);
   };
   const rentedVehicleCount = activeVehicles.filter(
     (v) => v.status === "Iznajmljeno",
   ).length;
-  const fleetUtilization = activeVehicles.length
-    ? Math.round((rentedVehicleCount / activeVehicles.length) * 100)
-    : 0;
+  const reservedVehicleCount = activeVehicles.filter(
+    (vehicle) => vehicle.status === "Rezervisano",
+  ).length;
+  const utilizationPeriodEndsAt = new Date();
+  const utilizationPeriodStartsAt = new Date(
+    utilizationPeriodEndsAt.getTime() - 30 * 86_400_000,
+  );
+  const fleetUtilization = calculateFleetUtilization(
+    utilizationReservations,
+    activeVehicles.map((vehicle) => vehicle.id),
+    utilizationPeriodStartsAt,
+    utilizationPeriodEndsAt,
+  );
+  const utilizationReady =
+    !loading && !utilizationLoading && !utilizationError;
+  const hasUtilizationCapacity = activeVehicles.length > 0;
+  const utilizationDescription = !utilizationReady
+    ? utilizationError || "Učitavanje podataka…"
+    : hasUtilizationCapacity
+      ? `${fleetUtilization.rentedVehicleDays.toLocaleString("sr-RS")} od ${fleetUtilization.capacityVehicleDays.toLocaleString("sr-RS")} vozilo-dana u najmu`
+      : "Nema aktivnih vozila.";
   const vehicleKpis = [
     [
-      "Ukupno vozila",
+      "Aktivna flota",
       String(activeVehicles.length),
-      "u aktivnoj floti",
+      "vozila koja nisu arhivirana",
       "",
       "blue",
     ],
     [
-      "Dostupno",
-      String(activeVehicles.filter((v) => v.status === "Dostupno").length),
-      "spremno za najam",
+      "Trenutno dostupna",
+      currentAvailabilityReady ? String(availableNowVehicleIds.size) : "—",
+      currentAvailabilityReady
+        ? "može odmah u najam"
+        : currentAvailabilityError || "Provera dostupnosti…",
       "",
       "green",
     ],
     [
-      "Iznajmljeno",
-      String(activeVehicles.filter((v) => v.status === "Iznajmljeno").length),
-      "aktivno na putu",
+      "Rezervisana i u najmu",
+      String(rentedVehicleCount + reservedVehicleCount),
+      `${rentedVehicleCount} u najmu • ${reservedVehicleCount} rezervisano`,
       "",
       "violet",
     ],
     [
-      "Na servisu",
-      String(activeVehicles.filter((v) => v.status === "Na servisu").length),
-      "trenutno nedostupno",
+      "Operativno nedostupna",
+      currentAvailabilityReady ? String(attentionVehicleIds.size) : "—",
+      currentAvailabilityReady
+        ? "servis, šteta, registracija ili blokada"
+        : currentAvailabilityError || "Provera operativnog stanja…",
       "",
       "red",
     ],
     [
-      "Iskorišćenost",
-      `${fleetUtilization}%`,
-      `${rentedVehicleCount} od ${activeVehicles.length} vozila u najmu`,
+      "Iskorišćenost flote",
+      utilizationReady && hasUtilizationCapacity
+        ? `${fleetUtilization.percentage}%`
+        : "—",
+      utilizationDescription,
       "",
       "amber",
     ],
@@ -826,6 +987,7 @@ function Vehicles({
             : item,
         ),
       );
+      setCurrentMetricsRefresh((current) => current + 1);
     } catch (error) {
       alert(error instanceof Error ? error.message : "Status vozila nije promenjen.");
     }
@@ -864,11 +1026,11 @@ function Vehicles({
         className="vehicle-kpi-grid"
         items={vehicleKpis}
         actions={[
-          () => setKpi("Svi statusi"),
-          () => setKpi("Dostupno"),
-          () => setKpi("Iznajmljeno"),
-          () => setKpi("Na servisu"),
-          () => setKpi("Iznajmljeno"),
+          () => setKpi("all"),
+          () => setKpi("available"),
+          () => setKpi("engaged"),
+          () => setKpi("attention"),
+          undefined,
         ]}
       />
       <section className="panel table-panel">
@@ -881,7 +1043,13 @@ function Vehicles({
               placeholder="Marka, model, tablice, gorivo ili menjač..."
             />
           </div>
-          <CustomSelect value={status} onChange={(e) => setStatus(e.target.value)}>
+          <CustomSelect
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setKpiScope("all");
+            }}
+          >
             <option>Svi statusi</option>
             <option>Dostupno</option>
             <option>Iznajmljeno</option>
@@ -1075,6 +1243,7 @@ function Vehicles({
                 onClick={() => {
                   setQ("");
                   setStatus("Svi statusi");
+                  setKpiScope("all");
                   setLocation("Sve lokacije");
                   setFuel("Sva goriva");
                   setTransmission("Svi menjači");
@@ -1192,7 +1361,8 @@ function AddVehicleModal({
   added: (v: V) => void;
 }) {
   const [form, setForm] = useState({
-    name: "",
+    make: "",
+    model: "",
     plate: "",
     year: "2026",
     km: "0",
@@ -1202,6 +1372,8 @@ function AddVehicleModal({
     vin: "",
     fuel: "",
     transmission: "",
+    category: "",
+    seats: "5",
     registered: true,
     registrationExpiresAt: "",
   });
@@ -1219,6 +1391,14 @@ function AddVehicleModal({
     }
     if (form.registered && !form.registrationExpiresAt) {
       setError("Unesite datum do kog registracija važi.");
+      return;
+    }
+    const vin = form.vin.trim().toUpperCase();
+    if (
+      vin &&
+      existing.some((vehicle) => vehicle.vin.trim().toUpperCase() === vin)
+    ) {
+      setError("Vozilo sa ovim VIN brojem već postoji.");
       return;
     }
     if (
@@ -1240,8 +1420,10 @@ function AddVehicleModal({
         body: JSON.stringify({
           ...form,
           plate,
+          vin,
           year: Number(form.year),
           km: Number(form.km),
+          seats: Number(form.seats),
         }),
       });
       const data = await response.json();
@@ -1268,16 +1450,25 @@ function AddVehicleModal({
           tabeli.
         </p>
         <form onSubmit={submit}>
-          <label>
-            Marka i model *
-            <CustomInput
-              required
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="npr. Volkswagen Passat"
-            />
-          </label>
           <div className="add-form-grid">
+            <label>
+              Marka *
+              <CustomInput
+                required
+                value={form.make}
+                onChange={(e) => set("make", e.target.value)}
+                placeholder="npr. Volkswagen"
+              />
+            </label>
+            <label>
+              Model *
+              <CustomInput
+                required
+                value={form.model}
+                onChange={(e) => set("model", e.target.value)}
+                placeholder="npr. Passat"
+              />
+            </label>
             <label>
               {form.registered
                 ? "Registarske tablice *"
@@ -1306,6 +1497,36 @@ function AddVehicleModal({
                 max="2027"
                 value={form.year}
                 onChange={(e) => set("year", e.target.value)}
+              />
+            </label>
+            <label>
+              Kategorija vozila *
+              <CustomSelect
+                required
+                value={form.category}
+                onChange={(e) => set("category", e.target.value)}
+              >
+                <option value="">Izaberite</option>
+                <option>Economy</option>
+                <option>Compact</option>
+                <option>Intermediate</option>
+                <option>Full-size</option>
+                <option>SUV</option>
+                <option>Minivan</option>
+                <option>Premium</option>
+                <option>Convertible</option>
+                <option>Commercial</option>
+              </CustomSelect>
+            </label>
+            <label>
+              Broj sedišta *
+              <CustomInput
+                required
+                type="number"
+                min="1"
+                max="20"
+                value={form.seats}
+                onChange={(e) => set("seats", e.target.value)}
               />
             </label>
             <label>
@@ -1383,8 +1604,9 @@ function AddVehicleModal({
               />
             </label>
             <label>
-              Gorivo
+              Gorivo *
               <CustomSelect
+                required
                 value={form.fuel}
                 onChange={(e) => set("fuel", e.target.value)}
               >
@@ -1397,8 +1619,9 @@ function AddVehicleModal({
               </CustomSelect>
             </label>
             <label>
-              Menjač
+              Menjač *
               <CustomSelect
+                required
                 value={form.transmission}
                 onChange={(e) => set("transmission", e.target.value)}
               >
@@ -1523,6 +1746,10 @@ function VehicleDetail({ v, back }: { v: V; back: () => void }) {
           <section className="panel info-card">
             <h2>Osnovni podaci</h2>
             {[
+              ["Marka", current.make],
+              ["Model", current.model],
+              ["Kategorija", current.category],
+              ["Broj sedišta", String(current.seats)],
               [
                 "Registarske tablice",
                 displayPlate(current.plate, current.registered),
@@ -1741,10 +1968,12 @@ function EditVehicleModal({
         body: JSON.stringify({
           ...form,
           plate,
+          vin: form.vin.trim().toUpperCase(),
           id: vehicle.id,
           originalPlate: vehicle.plate,
           year: Number(form.year),
           km: Number(form.km),
+          seats: Number(form.seats),
         }),
       });
       const data = await r.json();
@@ -1767,15 +1996,23 @@ function EditVehicleModal({
         <small>UREĐIVANJE VOZILA</small>
         <h2>{vehicle.name}</h2>
         <form onSubmit={submit}>
-          <label>
-            Marka i model
-            <CustomInput
-              required
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-            />
-          </label>
           <div className="add-form-grid">
+            <label>
+              Marka *
+              <CustomInput
+                required
+                value={form.make}
+                onChange={(e) => set("make", e.target.value)}
+              />
+            </label>
+            <label>
+              Model *
+              <CustomInput
+                required
+                value={form.model}
+                onChange={(e) => set("model", e.target.value)}
+              />
+            </label>
             <label>
               {form.registered
                 ? "Registarske tablice *"
@@ -1802,6 +2039,36 @@ function EditVehicleModal({
                 type="number"
                 value={form.year}
                 onChange={(e) => set("year", e.target.value)}
+              />
+            </label>
+            <label>
+              Kategorija vozila *
+              <CustomSelect
+                required
+                value={form.category}
+                onChange={(e) => set("category", e.target.value)}
+              >
+                <option value="">Izaberite</option>
+                <option>Economy</option>
+                <option>Compact</option>
+                <option>Intermediate</option>
+                <option>Full-size</option>
+                <option>SUV</option>
+                <option>Minivan</option>
+                <option>Premium</option>
+                <option>Convertible</option>
+                <option>Commercial</option>
+              </CustomSelect>
+            </label>
+            <label>
+              Broj sedišta *
+              <CustomInput
+                required
+                type="number"
+                min="1"
+                max="20"
+                value={form.seats}
+                onChange={(e) => set("seats", e.target.value)}
               />
             </label>
             <label>
@@ -1876,8 +2143,9 @@ function EditVehicleModal({
               />
             </label>
             <label>
-              Gorivo
+              Gorivo *
               <CustomSelect
+                required
                 value={form.fuel || ""}
                 onChange={(e) => set("fuel", e.target.value)}
               >
@@ -1890,8 +2158,9 @@ function EditVehicleModal({
               </CustomSelect>
             </label>
             <label>
-              Menjač
+              Menjač *
               <CustomSelect
+                required
                 value={form.transmission || ""}
                 onChange={(e) => set("transmission", e.target.value)}
               >
@@ -6186,29 +6455,36 @@ function App() {
   }, []);
   useEffect(() => {
     if (!authReady || !logged) return;
-    const parts = location.pathname.split("/").filter(Boolean);
-    if (parts[0] === "vehicles" && parts[1] && parts[1] !== "services")
-      fetch("/api/vehicles?includeArchived=true")
+    const controller = new AbortController();
+    const requestedPath = location.pathname;
+    const parts = requestedPath.split("/").filter(Boolean);
+    if (parts[0] === "vehicles" && parts[1] && parts[1] !== "services") {
+      fetch("/api/vehicles?includeArchived=true", {
+        signal: controller.signal,
+      })
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
           const row = (d.vehicles || []).find(
             (x: { id: number }) => x.id === Number(parts[1]),
           );
-          if (row)
+          if (row && location.pathname === requestedPath)
             setV({
               ...row,
               km: Number(row.km).toLocaleString("sr-RS") + " km",
             });
         })
-        .catch(() => {});
-    else if (parts[0] === "reservations" && parts[1])
-      fetch("/api/reservations")
+        .catch((error) => {
+          if (!(error instanceof DOMException && error.name === "AbortError"))
+            return;
+        });
+    } else if (parts[0] === "reservations" && parts[1]) {
+      fetch("/api/reservations", { signal: controller.signal })
         .then((r) => (r.ok ? r.json() : Promise.reject()))
         .then((d) => {
           const row = (d.reservations || []).find(
             (x: { code: string }) => x.code === decodeURIComponent(parts[1]),
           );
-          if (row)
+          if (row && location.pathname === requestedPath)
             setB({
               id: row.code,
               clientId: row.clientId ?? null,
@@ -6222,7 +6498,12 @@ function App() {
               status: row.status,
             });
         })
-        .catch(() => {});
+        .catch((error) => {
+          if (!(error instanceof DOMException && error.name === "AbortError"))
+            return;
+        });
+    }
+    return () => controller.abort();
   }, [authReady, logged, pathname]);
   const login = () => {
     localStorage.setItem("dnfm_logged_in", "1");

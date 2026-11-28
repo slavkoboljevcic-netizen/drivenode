@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     }));
     const vehiclesById = new Map(calculatedVehicles.map((row) => [row.id, row]));
     const results = [
-      ...calculatedVehicles.filter((row) => !row.archivedAt && !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.plate, row.vin, row.location)).map((row) => ({ type: "vehicle", id: String(row.id), title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
+      ...calculatedVehicles.filter((row) => !row.archivedAt && !deleted.get("vehicles")?.has(row.plate) && contains(row.name, row.make, row.model, row.plate, row.vin, row.location, row.fuel, row.transmission, row.category, row.seats)).map((row) => ({ type: "vehicle", id: String(row.id), title: row.name, subtitle: `${row.plate} • ${row.location}`, data: row })),
       ...reservationRows.filter((row) => {
         const linkedVehicle = row.vehicleId ? vehiclesById.get(row.vehicleId) : undefined;
         return !deleted.get("reservations")?.has(row.code) && contains(row.code, row.client, linkedVehicle?.name || row.vehicle, linkedVehicle?.plate, row.location);

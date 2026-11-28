@@ -6,6 +6,8 @@ export const vehicles = sqliteTable(
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
+    make: text("make").notNull().default(""),
+    model: text("model").notNull().default(""),
     plate: text("plate").notNull(),
     year: integer("year").notNull(),
     km: integer("km").notNull().default(0),
@@ -15,6 +17,8 @@ export const vehicles = sqliteTable(
     vin: text("vin").notNull().default(""),
     fuel: text("fuel").notNull().default(""),
     transmission: text("transmission").notNull().default(""),
+    category: text("category").notNull().default(""),
+    seats: integer("seats").notNull().default(5),
     registered: integer("is_registered", { mode: "boolean" })
       .notNull()
       .default(true),
@@ -27,7 +31,12 @@ export const vehicles = sqliteTable(
       .notNull()
       .default(sql`CURRENT_TIMESTAMP`),
   },
-  (table) => [uniqueIndex("idx_vehicles_plate").on(table.plate)],
+  (table) => [
+    uniqueIndex("idx_vehicles_plate").on(table.plate),
+    uniqueIndex("idx_vehicles_vin_unique")
+      .on(sql`upper(trim(${table.vin}))`)
+      .where(sql`trim(${table.vin}) <> ''`),
+  ],
 );
 
 export const reservations = sqliteTable(

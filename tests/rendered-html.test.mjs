@@ -72,6 +72,7 @@ test("shared helpers preserve input and display boundaries", async () => {
   });
   const {
     clean,
+    calculateFleetUtilization,
     calculateFleetAvailability,
     calculateVehicleStatuses,
     displayPlate,
@@ -112,6 +113,7 @@ test("shared helpers preserve input and display boundaries", async () => {
       { id: 11, name: "Neregistrovano", plate: "T-11", registered: false },
       { id: 12, name: "Važeća registracija", plate: "T-12", registered: true, registrationExpiresAt: "2026-12-31" },
       { id: 13, name: "Jedinstveni legacy", plate: "T-13" },
+      { id: 14, name: "Buduća rezervacija", plate: "T-14" },
     ],
     [
       { vehicleId: 1, vehicle: "Servis", status: "Aktivna" },
@@ -122,6 +124,7 @@ test("shared helpers preserve input and display boundaries", async () => {
       { vehicleId: 7, vehicle: "Isti model", status: "Potvrđena" },
       { vehicleId: null, vehicle: "Isti model", status: "Potvrđena" },
       { vehicleId: null, vehicle: "Jedinstveni legacy", status: "Potvrđena" },
+      { vehicleId: 14, vehicle: "Buduća rezervacija", status: "Potvrđena", startsAt: "2026-12-10T10:00", endsAt: "2026-12-12T10:00" },
     ],
     [
       { vehicleId: 1, plate: "T-1", status: "U toku" },
@@ -145,8 +148,25 @@ test("shared helpers preserve input and display boundaries", async () => {
       "Van upotrebe",
       "Dostupno",
       "Dostupno",
+      "Dostupno",
     ],
   );
+  const utilization = calculateFleetUtilization(
+    [
+      { vehicleId: 1, startsAt: "2026-01-01T00:00:00Z", endsAt: "2026-01-06T00:00:00Z", status: "Završena" },
+      { vehicleId: 1, startsAt: "2026-01-05T00:00:00Z", endsAt: "2026-01-08T00:00:00Z", status: "Završena" },
+      { vehicleId: 2, startsAt: "2026-01-01T00:00:00Z", endsAt: "2026-01-05T00:00:00Z", status: "Potvrđena" },
+      { vehicleId: 2, startsAt: "2026-01-09T00:00:00Z", endsAt: "2026-01-11T00:00:00Z", status: "Aktivna" },
+    ],
+    [1, 2],
+    new Date("2026-01-01T00:00:00Z"),
+    new Date("2026-01-11T00:00:00Z"),
+  );
+  assert.deepEqual(utilization, {
+    percentage: 45,
+    rentedVehicleDays: 9,
+    capacityVehicleDays: 20,
+  });
   const fleetAvailability = calculateFleetAvailability(
     [
       { id: 1, name: "Rezervacija", plate: "A-1", registered: true, registrationExpiresAt: "2027-12-31" },
@@ -250,6 +270,8 @@ test("shared helpers preserve input and display boundaries", async () => {
 
   const vehicle = {
     name: "Škoda Kamiq",
+    make: "Škoda",
+    model: "Kamiq",
     plate: "BG-2782-JK",
     year: 2026,
     location: "Beograd • Aerodrom",
@@ -257,6 +279,8 @@ test("shared helpers preserve input and display boundaries", async () => {
     vin: "TMB123ABC456",
     fuel: "Dizel",
     transmission: "Automatski",
+    category: "SUV",
+    seats: 5,
     registered: true,
   };
   for (const query of [
@@ -267,6 +291,7 @@ test("shared helpers preserve input and display boundaries", async () => {
     "TMB123",
     "registrovano",
     "slobodno",
+    "SUV 5",
   ]) assert.equal(vehicleMatchesSearch(vehicle, query), true, query);
   assert.equal(vehicleMatchesSearch(vehicle, "benzin"), false);
   assert.equal(vehicleMatchesSearch(vehicle, "dizel Novi Sad"), false);

@@ -9,6 +9,8 @@ import { SearchIcon } from "./icons";
 type Vehicle = {
   id: number;
   name: string;
+  make: string;
+  model: string;
   plate: string;
   year: number;
   km: string;
@@ -18,6 +20,8 @@ type Vehicle = {
   vin: string;
   fuel: string;
   transmission: string;
+  category: string;
+  seats: number;
   registered: boolean;
   outOfService: boolean;
   archivedAt?: string | null;
@@ -101,6 +105,8 @@ export default function GlobalSearch({
       openVehicle({
         id: Number(row.id),
         name: String(row.name),
+        make: String(row.make || ""),
+        model: String(row.model || ""),
         plate: String(row.plate),
         year: Number(row.year),
         km: `${Number(row.km).toLocaleString("sr-RS")} km`,
@@ -110,6 +116,8 @@ export default function GlobalSearch({
         vin: String(row.vin || ""),
         fuel: String(row.fuel || ""),
         transmission: String(row.transmission || ""),
+        category: String(row.category || ""),
+        seats: Number(row.seats) || 5,
         registered: row.registered !== false,
         outOfService: row.outOfService === true,
         archivedAt: row.archivedAt ? String(row.archivedAt) : null,

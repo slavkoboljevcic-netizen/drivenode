@@ -23,6 +23,8 @@ const databaseSchema = [
   `CREATE TABLE IF NOT EXISTS vehicles (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     name TEXT NOT NULL,
+    make TEXT DEFAULT '' NOT NULL,
+    model TEXT DEFAULT '' NOT NULL,
     plate TEXT NOT NULL,
     year INTEGER NOT NULL,
     km INTEGER DEFAULT 0 NOT NULL,
@@ -32,6 +34,8 @@ const databaseSchema = [
     vin TEXT DEFAULT '' NOT NULL,
     fuel TEXT DEFAULT '' NOT NULL,
     transmission TEXT DEFAULT '' NOT NULL,
+    category TEXT DEFAULT '' NOT NULL,
+    seats INTEGER DEFAULT 5 NOT NULL,
     is_registered INTEGER DEFAULT 1 NOT NULL,
     registration_expires_at TEXT,
     out_of_service INTEGER DEFAULT 0 NOT NULL,
@@ -39,6 +43,9 @@ const databaseSchema = [
     created_at TEXT DEFAULT CURRENT_TIMESTAMP NOT NULL
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_plate ON vehicles (plate)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_vehicles_vin_unique
+   ON vehicles (upper(trim(vin)))
+   WHERE trim(vin) <> ''`,
   `CREATE TABLE IF NOT EXISTS reservations (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     code TEXT NOT NULL,
@@ -163,6 +170,10 @@ const databaseSchema = [
 ] as const;
 
 const missingColumns = [
+  ["vehicles", "make", "TEXT DEFAULT '' NOT NULL"],
+  ["vehicles", "model", "TEXT DEFAULT '' NOT NULL"],
+  ["vehicles", "category", "TEXT DEFAULT '' NOT NULL"],
+  ["vehicles", "seats", "INTEGER DEFAULT 5 NOT NULL"],
   ["vehicles", "archived_at", "TEXT"],
   ["vehicles", "out_of_service", "INTEGER DEFAULT 0 NOT NULL"],
   ["vehicles", "registration_expires_at", "TEXT"],
